@@ -1,0 +1,50 @@
+https://cmsweb.cern.ch/reqmgr2/fetch?rid=request-cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792
+
+
+[mmascher@vocms0282 ~]$ condor_history 110919.18
+ ID     OWNER          SUBMITTED   RUN_TIME     ST COMPLETED   CMD            
+110919.18 cmst1           1/28 20:11   0+10:01:33 C   1/31 13:48 /data/srv/wmagent/current/config/etc/submit_py3.sh cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792-Sandbox.tar.bz2 6956199 2
+
+
+[mmascher@vocms0282 ~]$ condor_history 110919.18 -af RequestCpus CpusUsage
+4 1.803442056265325
+
+
+[mmascher@vocms0282 ~]$ condor_history 110919.18 -l | egrep 'Elapsed|TotalCPU'
+ChirpCMSSW_cmsRun1_Elapsed = 33528
+ChirpCMSSW_cmsRun1_TotalCPU = 68962.89999999999
+ChirpCMSSW_cmsRun2_Elapsed = 551
+ChirpCMSSW_cmsRun2_TotalCPU = 2050.7
+ChirpCMSSW_cmsRun3_Elapsed = 1139
+ChirpCMSSW_cmsRun3_TotalCPU = 1942.49
+ChirpCMSSW_cmsRun4_Elapsed = 171
+ChirpCMSSW_cmsRun4_TotalCPU = 588.763
+ChirpCMSSW_cmsRun5_Elapsed = 63
+ChirpCMSSW_cmsRun5_TotalCPU = 206.307
+ChirpCMSSW_cmsRun6_Elapsed = 32
+ChirpCMSSW_cmsRun6_TotalCPU = 102.774
+
+
+[mmascher@vocms0282 ~]$ python3
+Python 3.9.25 (main, Nov 10 2025, 00:00:00) 
+[GCC 11.5.0 20240719 (Red Hat 11.5.0-11)] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> 33528+551+1139+171+63+32
+35484
+>>> 35484/3600
+9.856666666666667
+
+
+Step by Step info:
+cmsRun1
+68962/(33528*4) = 0.51
+cmsRun2
+2050/(551*4) = 0.93
+cmsRun3
+1942/(1139*4) = 0.42
+cmsRun4
+588/(171*4) = 0.85
+cmsRun5
+206/(63*4) = 0.82
+cmsRun6
+102/(32*4) = 0.8

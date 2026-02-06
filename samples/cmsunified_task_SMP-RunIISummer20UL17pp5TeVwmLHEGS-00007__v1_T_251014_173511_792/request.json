@@ -1,0 +1,348 @@
+{
+  "_id": "cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792",
+  "RequestType": "StepChain",
+  "Group": "DATAOPS",
+  "Requestor": "cmsunified",
+  "ProcessingVersion": 3,
+  "RequestPriority": 150000,
+  "SubRequestType": "ReDigi",
+  "Multicore": 4,
+  "CMSSWVersion": "CMSSW_10_6_47",
+  "ScramArch": [
+    "slc7_amd64_gcc700"
+  ],
+  "TimePerEvent": 51.996968521562664,
+  "SizePerEvent": 3582.45306,
+  "GlobalTag": "106X_mc2017_realistic_forppRef5TeV_v3",
+  "Memory": 8000,
+  "AcquisitionEra": {
+    "SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007_0": "RunIISummer20UL17pp5TeVwmLHEGS",
+    "SMP-RunIISummer20UL17pp5TeVDIGI-00006_0": "RunIISummer20UL17pp5TeVDIGI",
+    "SMP-RunIISummer20UL17pp5TeVHLT-00006_0": "RunIISummer20UL17pp5TeVHLT",
+    "SMP-RunIISummer20UL17pp5TeVRECO-00006_0": "RunIISummer20UL17pp5TeVRECO",
+    "SMP-RunIISummer20UL17pp5TeVMiniAODv2-00007_0": "RunIISummer20UL17pp5TeVMiniAODv2",
+    "SMP-RunIISummer20UL17pp5TeVNanoAODv9-00006_0": "RunIISummer20UL17pp5TeVNanoAODv9"
+  },
+  "ProcessingString": {
+    "SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007_0": "106X_mc2017_realistic_forppRef5TeV_v3",
+    "SMP-RunIISummer20UL17pp5TeVDIGI-00006_0": "106X_mc2017_realistic_forppRef5TeV_v3",
+    "SMP-RunIISummer20UL17pp5TeVHLT-00006_0": "94X_mc2017_realistic_forppRef5TeV_v2",
+    "SMP-RunIISummer20UL17pp5TeVRECO-00006_0": "106X_mc2017_realistic_forppRef5TeV_v3",
+    "SMP-RunIISummer20UL17pp5TeVMiniAODv2-00007_0": "106X_mc2017_realistic_forppRef5TeV_v3",
+    "SMP-RunIISummer20UL17pp5TeVNanoAODv9-00006_0": "106X_mc2017_realistic_forppRef5TeV_v3"
+  },
+  "Campaign": "RunIISummer20UL17pp5TeVwmLHEGS",
+  "PrepID": "task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007",
+  "RequestString": "task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T",
+  "DbsUrl": "https://cmsweb-prod.cern.ch/dbs/prod/global/DBSReader",
+  "ConfigCacheUrl": "https://cmsweb.cern.ch/couchdb",
+  "RequestorDN": "/DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=cmsunified/CN=658085/CN=Robot: CMS Unified account",
+  "RequestDate": [
+    2025,
+    10,
+    14,
+    17,
+    35,
+    11
+  ],
+  "PriorityTransition": [
+    {
+      "Priority": 90012,
+      "UpdateTime": 1760463311,
+      "DN": "/DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=cmsunified/CN=658085/CN=Robot: CMS Unified account"
+    },
+    {
+      "UpdateTime": 1768823908,
+      "DN": "/DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=vlimant/CN=652956/CN=Jean-Roch Vlimant",
+      "Priority": 105000
+    },
+    {
+      "UpdateTime": 1768977853,
+      "DN": "/DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=vlimant/CN=652956/CN=Jean-Roch Vlimant",
+      "Priority": 150000
+    }
+  ],
+  "CouchURL": "https://cmsweb.cern.ch/couchdb",
+  "CouchDBName": "reqmgr_config_cache",
+  "OpenRunningTimeout": 0,
+  "LumiList": {},
+  "DashboardHost": "cms-jobmon.cern.ch",
+  "DashboardPort": 8884,
+  "PeriodicHarvestInterval": 0,
+  "DQMHarvestUnit": "byRun",
+  "DQMUploadUrl": "https://cmsweb.cern.ch/dqm/dev",
+  "DQMSequences": [],
+  "EnableHarvesting": false,
+  "EnableNewStageout": false,
+  "IncludeParents": false,
+  "VoGroup": "unknown",
+  "VoRole": "unknown",
+  "ValidStatus": "PRODUCTION",
+  "RunNumber": 0,
+  "RobustMerge": true,
+  "Comments": "",
+  "GPUParams": "null",
+  "MaxWaitTime": 86400,
+  "EventStreams": null,
+  "MergedLFNBase": "/store/himc",
+  "UnmergedLFNBase": "/store/unmerged",
+  "DeleteFromSource": false,
+  "ChainParentageMap": {
+    "Step1": {
+      "ParentDset": null,
+      "ChildDsets": []
+    },
+    "Step2": {
+      "ParentDset": null,
+      "ChildDsets": []
+    },
+    "Step3": {
+      "ParentDset": null,
+      "ChildDsets": []
+    },
+    "Step4": {
+      "ParentDset": null,
+      "ChildDsets": [
+        "/WplusJetsToTauNu_TauToMuorE_H2ErratumFix_PDFExt_TuneCP5_5020GeV-powhegMiNNLO-pythia8-photos/RunIISummer20UL17pp5TeVRECO-106X_mc2017_realistic_forppRef5TeV_v3-v3/AODSIM"
+      ]
+    },
+    "Step5": {
+      "ParentDset": "/WplusJetsToTauNu_TauToMuorE_H2ErratumFix_PDFExt_TuneCP5_5020GeV-powhegMiNNLO-pythia8-photos/RunIISummer20UL17pp5TeVRECO-106X_mc2017_realistic_forppRef5TeV_v3-v3/AODSIM",
+      "ChildDsets": [
+        "/WplusJetsToTauNu_TauToMuorE_H2ErratumFix_PDFExt_TuneCP5_5020GeV-powhegMiNNLO-pythia8-photos/RunIISummer20UL17pp5TeVMiniAODv2-106X_mc2017_realistic_forppRef5TeV_v3-v3/MINIAODSIM"
+      ]
+    },
+    "Step6": {
+      "ParentDset": "/WplusJetsToTauNu_TauToMuorE_H2ErratumFix_PDFExt_TuneCP5_5020GeV-powhegMiNNLO-pythia8-photos/RunIISummer20UL17pp5TeVMiniAODv2-106X_mc2017_realistic_forppRef5TeV_v3-v3/MINIAODSIM",
+      "ChildDsets": [
+        "/WplusJetsToTauNu_TauToMuorE_H2ErratumFix_PDFExt_TuneCP5_5020GeV-powhegMiNNLO-pythia8-photos/RunIISummer20UL17pp5TeVNanoAODv9-106X_mc2017_realistic_forppRef5TeV_v3-v3/NANOAODSIM"
+      ]
+    }
+  },
+  "FirstEvent": 1,
+  "FirstLumi": 1,
+  "StepChain": 6,
+  "Step1": {
+    "KeepOutput": false,
+    "ConfigCacheID": "c1dafc016fcdfe5d3492565bc0d9c05e",
+    "GlobalTag": "106X_mc2017_realistic_forppRef5TeV_v3",
+    "CMSSWVersion": "CMSSW_10_6_47",
+    "ScramArch": [
+      "slc7_amd64_gcc700"
+    ],
+    "PrimaryDataset": "WplusJetsToTauNu_TauToMuorE_H2ErratumFix_PDFExt_TuneCP5_5020GeV-powhegMiNNLO-pythia8-photos",
+    "AcquisitionEra": "RunIISummer20UL17pp5TeVwmLHEGS",
+    "Campaign": "RunIISummer20UL17pp5TeVwmLHEGS",
+    "ProcessingString": "106X_mc2017_realistic_forppRef5TeV_v3",
+    "FilterEfficiency": 1,
+    "PrepID": "SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007",
+    "SplittingAlgo": "EventBased",
+    "RequestNumEvents": 15000000,
+    "Seeding": "AutomaticSeeding",
+    "EventsPerLumi": 830,
+    "LheInputFiles": false,
+    "StepName": "SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007_0",
+    "EventsPerJob": 830
+  },
+  "Step2": {
+    "KeepOutput": false,
+    "ConfigCacheID": "c1dafc016fcdfe5d3492565bc0d9e4ac",
+    "GlobalTag": "106X_mc2017_realistic_forppRef5TeV_v3",
+    "CMSSWVersion": "CMSSW_10_6_47",
+    "ScramArch": [
+      "slc7_amd64_gcc700"
+    ],
+    "PrimaryDataset": "WplusJetsToTauNu_TauToMuorE_H2ErratumFix_PDFExt_TuneCP5_5020GeV-powhegMiNNLO-pythia8-photos",
+    "AcquisitionEra": "RunIISummer20UL17pp5TeVDIGI",
+    "Campaign": "RunIISummer20UL17pp5TeVDIGI",
+    "ProcessingString": "106X_mc2017_realistic_forppRef5TeV_v3",
+    "FilterEfficiency": 1,
+    "PrepID": "SMP-RunIISummer20UL17pp5TeVDIGI-00006",
+    "MCPileup": "/MinBias_TuneCP5_5TeV-pythia8/RunIISummer20UL17pp5TeVGS-106X_mc2017_realistic_forppRef5TeV_v3-v1/GEN-SIM",
+    "SplittingAlgo": "EventAwareLumiBased",
+    "InputFromOutputModule": "RAWSIMoutput",
+    "StepName": "SMP-RunIISummer20UL17pp5TeVDIGI-00006_0",
+    "InputStep": "SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007_0"
+  },
+  "Step3": {
+    "KeepOutput": false,
+    "ConfigCacheID": "c1dafc016fcdfe5d3492565bc0db159c",
+    "GlobalTag": "94X_mc2017_realistic_forppRef5TeV_v2",
+    "CMSSWVersion": "CMSSW_9_4_14_UL_patch1",
+    "ScramArch": [
+      "slc7_amd64_gcc630"
+    ],
+    "PrimaryDataset": "WplusJetsToTauNu_TauToMuorE_H2ErratumFix_PDFExt_TuneCP5_5020GeV-powhegMiNNLO-pythia8-photos",
+    "AcquisitionEra": "RunIISummer20UL17pp5TeVHLT",
+    "Campaign": "RunIISummer20UL17pp5TeVHLT",
+    "ProcessingString": "94X_mc2017_realistic_forppRef5TeV_v2",
+    "FilterEfficiency": 1,
+    "PrepID": "SMP-RunIISummer20UL17pp5TeVHLT-00006",
+    "SplittingAlgo": "EventAwareLumiBased",
+    "InputFromOutputModule": "RAWSIMoutput",
+    "StepName": "SMP-RunIISummer20UL17pp5TeVHLT-00006_0",
+    "InputStep": "SMP-RunIISummer20UL17pp5TeVDIGI-00006_0"
+  },
+  "Step4": {
+    "KeepOutput": true,
+    "ConfigCacheID": "c1dafc016fcdfe5d3492565bc0dd23b5",
+    "GlobalTag": "106X_mc2017_realistic_forppRef5TeV_v3",
+    "CMSSWVersion": "CMSSW_10_6_47",
+    "ScramArch": [
+      "slc7_amd64_gcc700"
+    ],
+    "PrimaryDataset": "WplusJetsToTauNu_TauToMuorE_H2ErratumFix_PDFExt_TuneCP5_5020GeV-powhegMiNNLO-pythia8-photos",
+    "AcquisitionEra": "RunIISummer20UL17pp5TeVRECO",
+    "Campaign": "RunIISummer20UL17pp5TeVRECO",
+    "ProcessingString": "106X_mc2017_realistic_forppRef5TeV_v3",
+    "FilterEfficiency": 1,
+    "PrepID": "SMP-RunIISummer20UL17pp5TeVRECO-00006",
+    "SplittingAlgo": "EventAwareLumiBased",
+    "InputFromOutputModule": "RAWSIMoutput",
+    "StepName": "SMP-RunIISummer20UL17pp5TeVRECO-00006_0",
+    "InputStep": "SMP-RunIISummer20UL17pp5TeVHLT-00006_0"
+  },
+  "Step5": {
+    "KeepOutput": true,
+    "ConfigCacheID": "c1dafc016fcdfe5d3492565bc0dd26c3",
+    "GlobalTag": "106X_mc2017_realistic_forppRef5TeV_v3",
+    "CMSSWVersion": "CMSSW_10_6_47",
+    "ScramArch": [
+      "slc7_amd64_gcc700"
+    ],
+    "PrimaryDataset": "WplusJetsToTauNu_TauToMuorE_H2ErratumFix_PDFExt_TuneCP5_5020GeV-powhegMiNNLO-pythia8-photos",
+    "AcquisitionEra": "RunIISummer20UL17pp5TeVMiniAODv2",
+    "Campaign": "RunIISummer20UL17pp5TeVMiniAODv2",
+    "ProcessingString": "106X_mc2017_realistic_forppRef5TeV_v3",
+    "FilterEfficiency": 1,
+    "PrepID": "SMP-RunIISummer20UL17pp5TeVMiniAODv2-00007",
+    "SplittingAlgo": "EventAwareLumiBased",
+    "InputFromOutputModule": "AODSIMoutput",
+    "StepName": "SMP-RunIISummer20UL17pp5TeVMiniAODv2-00007_0",
+    "InputStep": "SMP-RunIISummer20UL17pp5TeVRECO-00006_0"
+  },
+  "Step6": {
+    "KeepOutput": true,
+    "ConfigCacheID": "c1dafc016fcdfe5d3492565bc0dd325c",
+    "GlobalTag": "106X_mc2017_realistic_forppRef5TeV_v3",
+    "CMSSWVersion": "CMSSW_10_6_47",
+    "ScramArch": [
+      "slc7_amd64_gcc700"
+    ],
+    "PrimaryDataset": "WplusJetsToTauNu_TauToMuorE_H2ErratumFix_PDFExt_TuneCP5_5020GeV-powhegMiNNLO-pythia8-photos",
+    "AcquisitionEra": "RunIISummer20UL17pp5TeVNanoAODv9",
+    "Campaign": "RunIISummer20UL17pp5TeVNanoAODv9",
+    "ProcessingString": "106X_mc2017_realistic_forppRef5TeV_v3",
+    "FilterEfficiency": 1,
+    "PrepID": "SMP-RunIISummer20UL17pp5TeVNanoAODv9-00006",
+    "SplittingAlgo": "EventAwareLumiBased",
+    "InputFromOutputModule": "MINIAODSIMoutput",
+    "StepName": "SMP-RunIISummer20UL17pp5TeVNanoAODv9-00006_0",
+    "InputStep": "SMP-RunIISummer20UL17pp5TeVMiniAODv2-00007_0"
+  },
+  "DeterministicPileup": false,
+  "ParentageResolved": false,
+  "RequestStatus": "running-open",
+  "RequestTransition": [
+    {
+      "Status": "new",
+      "UpdateTime": 1760463311,
+      "DN": "/DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=cmsunified/CN=658085/CN=Robot: CMS Unified account"
+    },
+    {
+      "UpdateTime": 1760463312,
+      "DN": "/DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=cmsunified/CN=658085/CN=Robot: CMS Unified account",
+      "Status": "assignment-approved"
+    },
+    {
+      "UpdateTime": 1767695372,
+      "DN": "/DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=cmsunified/CN=658085/CN=Robot: CMS Unified account",
+      "Status": "assigned"
+    },
+    {
+      "UpdateTime": 1767695491,
+      "DN": "/DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=msunmer/CN=852819/CN=Robot: WmCore Service Account",
+      "Status": "staging"
+    },
+    {
+      "UpdateTime": 1767698416,
+      "DN": "/DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=msunmer/CN=852819/CN=Robot: WmCore Service Account",
+      "Status": "staged"
+    },
+    {
+      "UpdateTime": 1767698886,
+      "DN": "/DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=msunmer/CN=852819/CN=Robot: WmCore Service Account",
+      "Status": "acquired"
+    },
+    {
+      "UpdateTime": 1768392093,
+      "DN": "/DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=msunmer/CN=852819/CN=Robot: WmCore Service Account",
+      "Status": "running-open"
+    }
+  ],
+  "CouchWorkloadDBName": "reqmgr_workload_cache",
+  "RequestName": "cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792",
+  "ConfigCacheID": null,
+  "GlobalTagConnect": null,
+  "DQMUploadProxy": null,
+  "DQMConfigCacheID": null,
+  "OverrideCatalog": null,
+  "RequiresGPU": null,
+  "JobExtraMatchRequirements": "",
+  "MinMergeSize": 2147483648,
+  "MaxMergeSize": 4294967296,
+  "MaxMergeEvents": 20000000,
+  "HarvestingMemory": 3000,
+  "PrimaryDataset": null,
+  "RequestWorkflow": "https://cmsweb.cern.ch/couchdb/reqmgr_workload_cache/cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792/spec",
+  "OutputDatasets": [
+    "/WplusJetsToTauNu_TauToMuorE_H2ErratumFix_PDFExt_TuneCP5_5020GeV-powhegMiNNLO-pythia8-photos/RunIISummer20UL17pp5TeVMiniAODv2-106X_mc2017_realistic_forppRef5TeV_v3-v3/MINIAODSIM",
+    "/WplusJetsToTauNu_TauToMuorE_H2ErratumFix_PDFExt_TuneCP5_5020GeV-powhegMiNNLO-pythia8-photos/RunIISummer20UL17pp5TeVNanoAODv9-106X_mc2017_realistic_forppRef5TeV_v3-v3/NANOAODSIM",
+    "/WplusJetsToTauNu_TauToMuorE_H2ErratumFix_PDFExt_TuneCP5_5020GeV-powhegMiNNLO-pythia8-photos/RunIISummer20UL17pp5TeVRECO-106X_mc2017_realistic_forppRef5TeV_v3-v3/AODSIM"
+  ],
+  "InitialPriority": 90012,
+  "SiteBlacklist": [
+    "T1_US_FNAL",
+    "T2_US_Purdue",
+    "T2_US_Caltech",
+    "T2_US_Florida",
+    "T2_US_Nebraska",
+    "T2_US_UCSD",
+    "T2_US_Wisconsin"
+  ],
+  "TrustSitelists": false,
+  "TrustPUSitelists": false,
+  "BlockCloseMaxEvents": 200000000,
+  "BlockCloseMaxWaitTime": 172800,
+  "Dashboard": "reprocessing",
+  "SoftTimeout": 159600,
+  "GracePeriod": 300,
+  "CustodialSites": [],
+  "NonCustodialSites": [],
+  "SiteWhitelist": [
+    "T2_DE_DESY"
+  ],
+  "Team": "production",
+  "HardTimeout": 159900,
+  "SubscriptionPriority": "Low",
+  "AllowOpportunistic": false,
+  "BlockCloseMaxFiles": 500,
+  "BlockCloseMaxSize": 5000000000000,
+  "Override": {
+    "eos-lfn-prefix": "root://eoscms.cern.ch//eos/cms/store/logs/prod/recent/PRODUCTION"
+  },
+  "DatasetLifetime": 0,
+  "OutputModulesLFNBases": [
+    "/store/unmerged/RunIISummer20UL17pp5TeVRECO/WplusJetsToTauNu_TauToMuorE_H2ErratumFix_PDFExt_TuneCP5_5020GeV-powhegMiNNLO-pythia8-photos/AODSIM/106X_mc2017_realistic_forppRef5TeV_v3-v3",
+    "/store/unmerged/RunIISummer20UL17pp5TeVNanoAODv9/WplusJetsToTauNu_TauToMuorE_H2ErratumFix_PDFExt_TuneCP5_5020GeV-powhegMiNNLO-pythia8-photos/NANOAODSIM/106X_mc2017_realistic_forppRef5TeV_v3-v3",
+    "/store/unmerged/RunIISummer20UL17pp5TeVwmLHEGS/WplusJetsToTauNu_TauToMuorE_H2ErratumFix_PDFExt_TuneCP5_5020GeV-powhegMiNNLO-pythia8-photos/LHE/106X_mc2017_realistic_forppRef5TeV_v3-v3",
+    "/store/unmerged/RunIISummer20UL17pp5TeVMiniAODv2/WplusJetsToTauNu_TauToMuorE_H2ErratumFix_PDFExt_TuneCP5_5020GeV-powhegMiNNLO-pythia8-photos/MINIAODSIM/106X_mc2017_realistic_forppRef5TeV_v3-v3",
+    "/store/unmerged/RunIISummer20UL17pp5TeVwmLHEGS/WplusJetsToTauNu_TauToMuorE_H2ErratumFix_PDFExt_TuneCP5_5020GeV-powhegMiNNLO-pythia8-photos/GEN-SIM/106X_mc2017_realistic_forppRef5TeV_v3-v3",
+    "/store/unmerged/RunIISummer20UL17pp5TeVDIGI/WplusJetsToTauNu_TauToMuorE_H2ErratumFix_PDFExt_TuneCP5_5020GeV-powhegMiNNLO-pythia8-photos/GEN-SIM-RAW/106X_mc2017_realistic_forppRef5TeV_v3-v3",
+    "/store/unmerged/RunIISummer20UL17pp5TeVHLT/WplusJetsToTauNu_TauToMuorE_H2ErratumFix_PDFExt_TuneCP5_5020GeV-powhegMiNNLO-pythia8-photos/GEN-SIM-RAW/94X_mc2017_realistic_forppRef5TeV_v2-v3"
+  ],
+  "TotalEstimatedJobs": 18073,
+  "TotalInputEvents": 15000000,
+  "TotalInputLumis": 18073,
+  "TotalInputFiles": 0
+}

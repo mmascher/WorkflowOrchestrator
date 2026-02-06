@@ -1,0 +1,138 @@
+[
+  {
+    "splitAlgo": "EventBased",
+    "splitParams": {
+      "lheInputFiles": false,
+      "algorithm": "EventBased",
+      "events_per_job": 830,
+      "include_parents": false,
+      "events_per_lumi": 830,
+      "deterministicPileup": false,
+      "trustSitelists": false,
+      "trustPUSitelists": false,
+      "type": "Production"
+    },
+    "taskType": "Production",
+    "taskName": "/cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792/SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007_0"
+  },
+  {
+    "splitAlgo": "SiblingProcessingBased",
+    "splitParams": {
+      "algorithm": "SiblingProcessingBased",
+      "files_per_job": 50,
+      "trustSitelists": false,
+      "trustPUSitelists": false,
+      "type": "Cleanup"
+    },
+    "taskType": "Cleanup",
+    "taskName": "/cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792/SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007_0/SMP-RunIISummer20UL17pp5TeVMiniAODv2-00007_0CleanupUnmergedMINIAODSIMoutput"
+  },
+  {
+    "splitAlgo": "ParentlessMergeBySize",
+    "splitParams": {
+      "algorithm": "ParentlessMergeBySize",
+      "initial_lfn_counter": 0,
+      "max_merge_size": 4294967296,
+      "max_merge_events": 20000000,
+      "min_merge_size": 2147483648,
+      "max_wait_time": 86400,
+      "trustSitelists": false,
+      "trustPUSitelists": false,
+      "type": "Merge"
+    },
+    "taskType": "Merge",
+    "taskName": "/cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792/SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007_0/SMP-RunIISummer20UL17pp5TeVMiniAODv2-00007_0MergeMINIAODSIMoutput"
+  },
+  {
+    "splitAlgo": "MinFileBased",
+    "splitParams": {
+      "algorithm": "MinFileBased",
+      "files_per_job": 500,
+      "trustSitelists": false,
+      "trustPUSitelists": false,
+      "type": "LogCollect"
+    },
+    "taskType": "LogCollect",
+    "taskName": "/cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792/SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007_0/SMP-RunIISummer20UL17pp5TeVMiniAODv2-00007_0MergeMINIAODSIMoutput/SMP-RunIISummer20UL17pp5TeVMiniAODv2-00007_0MINIAODSIMoutputMergeLogCollect"
+  },
+  {
+    "splitAlgo": "SiblingProcessingBased",
+    "splitParams": {
+      "algorithm": "SiblingProcessingBased",
+      "files_per_job": 50,
+      "trustSitelists": false,
+      "trustPUSitelists": false,
+      "type": "Cleanup"
+    },
+    "taskType": "Cleanup",
+    "taskName": "/cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792/SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007_0/SMP-RunIISummer20UL17pp5TeVNanoAODv9-00006_0CleanupUnmergedNANOEDMAODSIMoutput"
+  },
+  {
+    "splitAlgo": "ParentlessMergeBySize",
+    "splitParams": {
+      "algorithm": "ParentlessMergeBySize",
+      "initial_lfn_counter": 0,
+      "max_merge_size": 4294967296,
+      "max_merge_events": 20000000,
+      "min_merge_size": 2147483648,
+      "max_wait_time": 86400,
+      "trustSitelists": false,
+      "trustPUSitelists": false,
+      "type": "Merge"
+    },
+    "taskType": "Merge",
+    "taskName": "/cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792/SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007_0/SMP-RunIISummer20UL17pp5TeVNanoAODv9-00006_0MergeNANOEDMAODSIMoutput"
+  },
+  {
+    "splitAlgo": "MinFileBased",
+    "splitParams": {
+      "algorithm": "MinFileBased",
+      "files_per_job": 500,
+      "trustSitelists": false,
+      "trustPUSitelists": false,
+      "type": "LogCollect"
+    },
+    "taskType": "LogCollect",
+    "taskName": "/cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792/SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007_0/SMP-RunIISummer20UL17pp5TeVNanoAODv9-00006_0MergeNANOEDMAODSIMoutput/SMP-RunIISummer20UL17pp5TeVNanoAODv9-00006_0NANOEDMAODSIMoutputMergeLogCollect"
+  },
+  {
+    "splitAlgo": "SiblingProcessingBased",
+    "splitParams": {
+      "algorithm": "SiblingProcessingBased",
+      "files_per_job": 50,
+      "trustSitelists": false,
+      "trustPUSitelists": false,
+      "type": "Cleanup"
+    },
+    "taskType": "Cleanup",
+    "taskName": "/cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792/SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007_0/SMP-RunIISummer20UL17pp5TeVRECO-00006_0CleanupUnmergedAODSIMoutput"
+  },
+  {
+    "splitAlgo": "ParentlessMergeBySize",
+    "splitParams": {
+      "algorithm": "ParentlessMergeBySize",
+      "initial_lfn_counter": 0,
+      "max_merge_size": 4294967296,
+      "max_merge_events": 20000000,
+      "min_merge_size": 2147483648,
+      "max_wait_time": 86400,
+      "trustSitelists": false,
+      "trustPUSitelists": false,
+      "type": "Merge"
+    },
+    "taskType": "Merge",
+    "taskName": "/cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792/SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007_0/SMP-RunIISummer20UL17pp5TeVRECO-00006_0MergeAODSIMoutput"
+  },
+  {
+    "splitAlgo": "MinFileBased",
+    "splitParams": {
+      "algorithm": "MinFileBased",
+      "files_per_job": 500,
+      "trustSitelists": false,
+      "trustPUSitelists": false,
+      "type": "LogCollect"
+    },
+    "taskType": "LogCollect",
+    "taskName": "/cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792/SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007_0/SMP-RunIISummer20UL17pp5TeVRECO-00006_0MergeAODSIMoutput/SMP-RunIISummer20UL17pp5TeVRECO-00006_0AODSIMoutputMergeLogCollect"
+  }
+]
