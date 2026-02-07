@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.1] - 2025-02-07
+
+### Fixed
+
+- Change execute_stepchain.sh and make sure it runs on the Grid (was tested on local setup)
+
 ## [0.1.0] - 2025-02-06
 
 ### Added
@@ -18,4 +24,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - EventSplitter requires WMCore on `PYTHONPATH` (e.g. `../WMCore/src/python`).
 - `execute_stepchain.sh` requires `edm_pset_pickler.py`, `edm_pset_tweak.py`, `cmssw_handle_nEvents.py` on PATH (e.g. from cmssw-wm-tools) and a CMS/SCRAM environment (e.g.: the cmssw-el7 for the `SMP-RunIISummer20UL17pp5TeVwmLHEGS` example in the repo).
 
+[0.1.1]: https://github.com/dmwm/WorkflowOrchestrator/releases/tag/v0.1.1
 [0.1.0]: https://github.com/dmwm/WorkflowOrchestrator/releases/tag/v0.1.0
