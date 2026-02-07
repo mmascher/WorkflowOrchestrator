@@ -97,11 +97,11 @@ WRAPPER
 
     export FRONTIER_LOG_LEVEL=warning
     echo "Executing cmsRun -j job_report.xml Pset_cmsRun.py"
-    mkdir -p "$CMSSW_BASE/SITECONF/local/JobConfig" #MYTEST
-    cp /home/marco/development/results/WMCore/manual_test/site-local-config.xml "$CMSSW_BASE/SITECONF/local/JobConfig/site-local-config.xml" #MYTEST#
-    unset FRONTIER_PROXY #MYTEST
-    unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY #MYTEST
-    unset all_proxy ALL_PROXY no_proxy NO_PROXY #MYTEST
+#    mkdir -p "$CMSSW_BASE/SITECONF/local/JobConfig" #MYTEST
+#    cp /home/marco/development/results/WMCore/manual_test/site-local-config.xml "$CMSSW_BASE/SITECONF/local/JobConfig/site-local-config.xml" #MYTEST#
+#    unset FRONTIER_PROXY #MYTEST
+#    unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY #MYTEST
+#    unset all_proxy ALL_PROXY no_proxy NO_PROXY #MYTEST
     CMS_PATH="$CMSSW_BASE" cmsRun -j job_report.xml Pset_cmsRun.py || { echo "cmsRun failed for step $STEP_NUM"; exit 1; }
     )
 }
