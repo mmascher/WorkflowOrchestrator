@@ -6,8 +6,7 @@
 #
 # Tarball contains request.json and PSets/ (from EventSplitter). job_N.json is per job.
 #
-# Requires: edm_pset_pickler.py, edm_pset_tweak.py, cmssw_handle_nEvents.py on PATH (e.g. from cmssw-wm-tools),
-# CMS/SCRAM environment (source cmsset_default.sh, scram project).
+# Intended to be executed on Grid worker nodes where the CMS environment is available (see setup_cmsset call)).
 
 set -e
 
@@ -66,7 +65,8 @@ print_condor_machine_ad() {
 # Call with current directory = step directory (STEP_DIR). Uses SCRAM_ARCH, CMSSW_VERSION, STEP_NUM.
 run_step_in_cms_env() {
     (
-    source /cvmfs/cms.cern.ch/cmsset_default.sh
+    source /srv/submit_env.sh
+    setup_cmsset
     export SCRAM_ARCH
     scram project "$CMSSW_VERSION" || { echo "scram project failed"; exit 71; }
     cd "$CMSSW_VERSION"
@@ -102,7 +102,8 @@ WRAPPER
 #    unset FRONTIER_PROXY #MYTEST
 #    unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY #MYTEST
 #    unset all_proxy ALL_PROXY no_proxy NO_PROXY #MYTEST
-    CMS_PATH="$CMSSW_BASE" cmsRun -j job_report.xml Pset_cmsRun.py || { echo "cmsRun failed for step $STEP_NUM"; exit 1; }
+#   CMS_PATH="$CMSSW_BASE" cmsRun -j job_report.xml Pset_cmsRun.py || { echo "cmsRun failed for step $STEP_NUM"; exit 1; } #MYTEST
+    cmsRun -j job_report.xml Pset_cmsRun.py || { echo "cmsRun failed for step $STEP_NUM"; exit 1; }
     )
 }
 
