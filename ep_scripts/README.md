@@ -1,4 +1,4 @@
-# Scripts
+# Execute Point Scripts
 
 ## execute_stepchain.sh
 
