@@ -32,7 +32,7 @@ setup_cmsset() {
         echo "  Because of this, we can't load CMSSW. Not good." >&2
         exit 11003
     fi
-    echo "CRAB job bootstrap: thinks it found the correct CMSSW setup script"
+    echo "Job bootstrap: thinks it found the correct CMSSW setup script"
     echo -e "======== CMS environment load finished at $(TZ=GMT date) ========\n"
 }
 
