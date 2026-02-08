@@ -27,7 +27,7 @@ Intended for use on the **worker node** to transfer files from the worker to the
 stageout.py --lfn /store/.../file.root --local ./output.root
 ```
 
-Repeat `--lfn` and `--local` for multiple files (same order). Optional: `--retries` and `--retry-pause` (defaults: 3 and 600).
+Repeat `--lfn` and `--local` for multiple files (same order). Optional: `--retries` and `--retry-pause` (defaults: 3 and 600). There is also a `--request` / `--work-dir` mode that discovers files to stage from a stepchain request (used internally by `execute_stepchain.sh`).
 
 **Example** (e.g. in a Singularity/worker environment with `ep_scripts/submit_env.sh`):
 

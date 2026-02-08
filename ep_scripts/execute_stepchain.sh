@@ -107,6 +107,24 @@ WRAPPER
     )
 }
 
+# Stage-out: transfer output files for steps with KeepOutput=true via stageout.py (requires SITECONFIG_PATH and WMCore on PYTHONPATH).
+# Uses REQUEST_JSON and TMP_DIR from the calling script.
+run_stageout() {
+    if [ -z "${SITECONFIG_PATH:-}" ] && [ -z "${WMAGENT_SITE_CONFIG_OVERRIDE:-}" ]; then
+        echo "Stage-out skipped (SITECONFIG_PATH not set)."
+        return 0
+    fi
+    echo "========== Stage-out (steps with KeepOutput=true) =========="
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    STAGEOUT_SCRIPT="$SCRIPT_DIR/stageout.py"
+    if [ ! -f "$STAGEOUT_SCRIPT" ]; then
+        echo "Stage-out skipped: stageout.py not found at $STAGEOUT_SCRIPT"
+        return 0
+    fi
+    "$STAGEOUT_SCRIPT" --request "$REQUEST_JSON" --work-dir "$TMP_DIR" || { echo "Stage-out failed"; exit 1; }
+    echo "Stage-out completed."
+}
+
 parse_and_validate_args "$@"
 
 echo "Starting execute_stepchain.sh: tarball=$TARBALL_PATH job=$JOB_FILE"
@@ -176,4 +194,7 @@ with open('tweak.json', 'w') as f:
 done
 
 echo "All steps completed successfully."
+
+run_stageout
+
 # Cleanup via trap
