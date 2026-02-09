@@ -1,0 +1,29 @@
+Universe   = vanilla
+
+Executable = run.sh
+
+Log        = log/run.$(Cluster)
+Output     = out/run.$(SITE).$(Cluster).$(Process)
+Error      = err/run.$(SITE).$(Cluster).$(Process)
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_input_files = execute_stepchain.sh,submit_env.sh,event_splitter_out/job$(Process).json,event_splitter_out/request_psets.tar.gz
+transfer_output_files = output.tgz
+transfer_output_remaps = "output.tgz = results/output.$(SITE).$(Cluster).$(Process).tgz"
+
+x509userproxy = /tmp/x509up_u8440
+use_x509userproxy = True
+
++DESIRED_Sites = "$(SITE)"
+
+request_cpus = 1
+request_memory = 1000
++MaxWallTimeMins = 180
+
++REQUIRED_OS = "rhel7"
+
+# sitelist.txt obtained with
+# "condor_status -any -pool vocms0204.cern.ch -const 'mytype=="glidefactory" && stringlistmember("CMSGPU",GLIDEIN_Supported_VOs) && GLIDEIN_Gatekeeper=!="opportunistic.host.invalid opportunistic.host.invalid:9619"' -af GLIDEIN_CMSSite | uniq"
+# Can be run from any lxplus node
+Queue 1 SITE from sitelist.txt
