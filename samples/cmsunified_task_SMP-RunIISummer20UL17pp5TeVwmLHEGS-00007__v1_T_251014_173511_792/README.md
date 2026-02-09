@@ -67,7 +67,7 @@ Total wall time of the six steps: **~9 h 51 min** (35 484 s).
 
 ### Note on Step 1 efficiency
 
-**Step 1 (cmsRun1) was particularly inefficient (~50% CPU use) and dominated the job runtime** (33 528 s of 35 484 s). This is the GEN-SIM step (wmLHEGS). Improving Step 1 efficiency or scaling (e.g. event-level parallelism, I/O, or resource requests) would have the largest impact on this workflow.
+**Step 1 (cmsRun1) was particularly inefficient (~50% CPU use) and dominated the job runtime** (33 528 s of 35 484 s). This is the GEN-SIM step (wmLHEGS). Improving Step 1 efficiency would have the largest impact on this workflow.
 
 ---
 
