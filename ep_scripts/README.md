@@ -17,7 +17,7 @@ The script extracts the tarball, reads the step count and step config from `requ
 
 ## stageout.py
 
-Intended for use on the **worker node** to transfer files from the worker to the **site storage element**, using WMCore `StageOutMgr` and the site's storage config.
+Intended for use on the **worker node** to transfer files from the worker to the **site storage element**, using WMCore `StageOutMgr` and the site's storage config. Can be tested locally with the `--lfn` and `--local` options.
 
 **Requirements:** `SITECONFIG_PATH` or `WMAGENT_SITE_CONFIG_OVERRIDE` must be set (e.g. to the site's SITECONF path, such as `/cvmfs/cms.cern.ch/SITECONF/T2_CH_CERN`).
 
@@ -29,9 +29,10 @@ stageout.py --lfn /store/.../file.root --local ./output.root
 
 Repeat `--lfn` and `--local` for multiple files (same order). Optional: `--retries` and `--retry-pause` (defaults: 3 and 600). There is also a `--request` / `--work-dir` mode that discovers files to stage from a stepchain request (used internally by `execute_stepchain.sh`).
 
-**Example** (e.g. in a Singularity/worker environment with `ep_scripts/submit_env.sh`):
+**Example** (e.g. on lxplus from the WorkflowOrchestrator root):
 
 ```bash
+cmssw-cc7
 export PYTHONPATH=/path/to/WMCore/src/python
 export SITECONFIG_PATH=/cvmfs/cms.cern.ch/SITECONF/T2_CH_CERN
 source ep_scripts/submit_env.sh
@@ -39,5 +40,5 @@ setup_local_env
 setup_cmsset
 setup_python_comp
 
-ep_scripts/stageout.py --lfn /store/temp/user/you.abc123/WMCore.zip --local CHANGELOG.md
+ep_scripts/stageout.py --lfn /store/temp/user/you.abc123/destfile --local sourcefile
 ```
