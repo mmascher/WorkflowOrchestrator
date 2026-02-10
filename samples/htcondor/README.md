@@ -1,8 +1,8 @@
 # HTCondor Sample Submission
 
-Sample HTCondor JDL and wrapper script for submitting **one job per site** (not the full simulation). This is useful for validating that the StepChain execution works across the Grid before launching the complete set of jobs.
+Sample HTCondor JDL and wrapper script for submitting **one job per site** (not the full simulation). This is useful for validating that the StepChain execution works across the Grid.
 
-The JDL iterates over the sites listed in `sitelist.txt` and submits one job to each, assigning `Process` values from 0 to NSites-1.
+The JDL iterates over the sites listed in `sitelist.txt` and submits one job to each.
 
 ## Directory Setup
 
