@@ -65,7 +65,8 @@ print_condor_machine_ad() {
 # Call with current directory = step directory (STEP_DIR). Uses SCRAM_ARCH, CMSSW_VERSION, STEP_NUM.
 run_step_in_cms_env() {
     (
-    source /srv/submit_env.sh
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    source "$SCRIPT_DIR/submit_env.sh"
     setup_cmsset
     export SCRAM_ARCH
     scram project "$CMSSW_VERSION" || { echo "scram project failed"; exit 71; }
