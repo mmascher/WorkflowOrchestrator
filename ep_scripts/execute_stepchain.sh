@@ -9,6 +9,7 @@
 # Intended to be executed on Grid worker nodes where the CMS environment is available (see setup_cmsset call)).
 
 set -e
+set -x # MYTEST
 
 # Resolve to absolute paths so they work after we cd to TMP_DIR (e.g. inside Singularity)
 resolve_abs() {
@@ -36,7 +37,7 @@ parse_and_validate_args() {
     fi
 
     # This is where stage_out, submit_env and other scripts live
-    SCRIPT_DIR="$(cd "$(dirname "$TARBALL_PATH")/.." && pwd)"
+    SCRIPT_DIR="$(cd "$(dirname "$TARBALL_PATH")" && pwd)"
 }
 
 # Print current environment, one variable per line, each prefixed with ---ENV--- 
@@ -125,7 +126,17 @@ run_stageout() {
         echo "Stage-out skipped: stage_out.py not found at $STAGEOUT_SCRIPT"
         return 0
     fi
+    (
+    source "$SCRIPT_DIR/submit_env.sh"
+    #setup_local_env ##MYTEST
+    #export CVMFS="/cvmfs/cms.cern.ch" ##MYTEST
+    export PYTHONPATH="PYTHONPATH:$SCRIPT_DIR/WMCore.zip"
+    set +x ##MYTEST
+    setup_cmsset
+    setup_python_comp
+    set -x #MYTEST
     "$STAGEOUT_SCRIPT" --request "$REQUEST_JSON" --work-dir "$TMP_DIR" || { echo "Stage-out failed"; exit 1; }
+    )
     echo "Stage-out completed."
 }
 
@@ -156,7 +167,6 @@ NUM_STEPS=$(python3 -S -c "import json; r=json.load(open('$REQUEST_JSON')); prin
 echo "StepChain has $NUM_STEPS steps"
 
 
-set -x ##MYTEST
 # Run each step
 for STEP_NUM in $(seq 1 "$NUM_STEPS"); do
     echo "========== Step $STEP_NUM =========="
