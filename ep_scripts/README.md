@@ -10,12 +10,12 @@ Runs a **single** StepChain job: given the request tarball and one `jobN.json`, 
 execute_stepchain.sh <request_psets.tar.gz> <job_N.json>
 ```
 
-- **request_psets.tar.gz** — Tarball with `request.json` and `PSets/` (produced by EventSplitter with `--psets`).
-- **job_N.json** — Per-job file from EventSplitter (contains `job_index` and `tweaks` for each step).
+- **request_psets.tar.gz** — Tarball with `request.json` and `PSets/` (produced by event_splitter with `--psets`).
+- **job_N.json** — Per-job file from event_splitter (contains `job_index` and `tweaks` for each step).
 
 The script extracts the tarball, reads the step count and step config from `request.json`, and for each step sets up the CMSSW release, applies the precomputed tweak from `jobN.json`, and runs cmsRun. Steps 2+ read input from the previous step’s output (e.g. `file:../step1/RAWSIMoutput.root`).
 
-## stageout.py
+## stage_out.py
 
 Intended for use on the **worker node** to transfer files from the worker to the **site storage element**, using WMCore `StageOutMgr` and the site's storage config. Can be tested locally with the `--lfn` and `--local` options.
 
@@ -24,7 +24,7 @@ Intended for use on the **worker node** to transfer files from the worker to the
 **Usage:**
 
 ```bash
-stageout.py --lfn /store/.../file.root --local ./output.root
+stage_out.py --lfn /store/.../file.root --local ./output.root
 ```
 
 Repeat `--lfn` and `--local` for multiple files (same order). Optional: `--retries` and `--retry-pause` (defaults: 3 and 600). There is also a `--request` / `--work-dir` mode that discovers files to stage from a stepchain request (used internally by `execute_stepchain.sh`).
@@ -40,5 +40,5 @@ setup_local_env
 setup_cmsset
 setup_python_comp
 
-ep_scripts/stageout.py --lfn /store/temp/user/you.abc123/destfile --local sourcefile
+ep_scripts/stage_out.py --lfn /store/temp/user/you.abc123/destfile --local sourcefile
 ```

@@ -1,4 +1,4 @@
-# EventSplitter
+# event_splitter
 
 Standalone **EventBased** job splitter for StepChain workflows. It uses WMCore’s `DataStructs` and `JobSplitting.SplitterFactory` (no WMBS/DB) to turn a ReqMgr-style request and splitting config into a set of jobs, each with precomputed PSet tweaks for every step. Those tweaks are consumed on the worker by the cmssw-wm-tools (e.g.: `edm_pset_tweak.py`).
 
@@ -25,7 +25,7 @@ From the **WorkflowOrchestrator repo root**:
 ```bash
 export PYTHONPATH=<repo_path>/WMCore/src/python
 
-src/python/JobSplitters/EventSplitter.py \
+src/python/job_splitters/event_splitter.py \
   --request samples/cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792/request.json \
   --splitting samples/cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792/splitting.json \
   --psets samples/cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792/PSets/ \

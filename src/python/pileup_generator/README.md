@@ -1,4 +1,4 @@
-# PileupGenerator
+# pileup_generator
 
 Standalone `pileupconf.json` generator that queries DBS, MSPileup, and Rucio to
 produce the same pileup configuration JSON that WMCore's `PileupFetcher` builds

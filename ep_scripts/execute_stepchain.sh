@@ -4,7 +4,7 @@
 #
 # Usage: execute_stepchain.sh <request_psets.tar.gz> <job_N.json>
 #
-# Tarball contains request.json and PSets/ (from EventSplitter). job_N.json is per job.
+# Tarball contains request.json and PSets/ (from event_splitter). job_N.json is per job.
 #
 # Intended to be executed on Grid worker nodes where the CMS environment is available (see setup_cmsset call)).
 
@@ -107,7 +107,7 @@ WRAPPER
     )
 }
 
-# Stage-out: transfer output files for steps with KeepOutput=true via stageout.py (requires SITECONFIG_PATH and WMCore on PYTHONPATH).
+# Stage-out: transfer output files for steps with KeepOutput=true via stage_out.py (requires SITECONFIG_PATH and WMCore on PYTHONPATH).
 # Uses REQUEST_JSON and TMP_DIR from the calling script.
 run_stageout() {
     if [ -z "${SITECONFIG_PATH:-}" ] && [ -z "${WMAGENT_SITE_CONFIG_OVERRIDE:-}" ]; then
@@ -116,9 +116,9 @@ run_stageout() {
     fi
     echo "========== Stage-out (steps with KeepOutput=true) =========="
     SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-    STAGEOUT_SCRIPT="$SCRIPT_DIR/stageout.py"
+    STAGEOUT_SCRIPT="$SCRIPT_DIR/stage_out.py"
     if [ ! -f "$STAGEOUT_SCRIPT" ]; then
-        echo "Stage-out skipped: stageout.py not found at $STAGEOUT_SCRIPT"
+        echo "Stage-out skipped: stage_out.py not found at $STAGEOUT_SCRIPT"
         return 0
     fi
     "$STAGEOUT_SCRIPT" --request "$REQUEST_JSON" --work-dir "$TMP_DIR" || { echo "Stage-out failed"; exit 1; }

@@ -30,11 +30,11 @@ Copy the following files into this directory:
    cp ../../ep_scripts/submit_env.sh .
    ```
 
-2. **EventSplitter output** — place it in an `event_splitter_out/` subdirectory. This must contain:
+2. **event_splitter output** — place it in an `event_splitter_out/` subdirectory. This must contain:
    - `job0.json`, `job1.json`, …, `job<NSites-1>.json` (one per site)
    - `request_psets.tar.gz`
 
-   See the [EventSplitter README](../../src/python/JobSplitters/README.md) for how to produce these files.
+   See the [event_splitter README](../../src/python/job_splitters/README.md) for how to produce these files.
 
 The final layout should look like:
 
