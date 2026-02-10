@@ -6,7 +6,7 @@
 #
 # Tarball contains request.json and PSets/ (from event_splitter). job_N.json is per job.
 #
-# Intended to be executed on Grid worker nodes where the CMS environment is available (see setup_cmsset call)).
+# Intended to be executed on Grid worker nodes where the CMS environment is available (see setup_cmsset call).
 
 set -e
 set -x # MYTEST
@@ -74,9 +74,9 @@ run_step_in_cms_env() {
     export SCRAM_ARCH
     scram project "$CMSSW_VERSION" || { echo "scram project failed"; exit 71; }
     cd "$CMSSW_VERSION"
-    set +x ##MYTEST
+    set +x # MYTEST
     eval $(scram runtime -sh)
-    set -x ##MYTEST
+    set -x # MYTEST
     cd ..
 
     edm_pset_pickler.py --input "PSet_base.py" --output_pkl "Pset.pkl" || {
@@ -103,12 +103,12 @@ WRAPPER
 
     export FRONTIER_LOG_LEVEL=warning
     echo "Executing cmsRun -j job_report.xml Pset_cmsRun.py"
-#    mkdir -p "$CMSSW_BASE/SITECONF/local/JobConfig" #MYTEST
-#    cp /home/marco/development/results/WMCore/manual_test/site-local-config.xml "$CMSSW_BASE/SITECONF/local/JobConfig/site-local-config.xml" #MYTEST#
-#    unset FRONTIER_PROXY #MYTEST
-#    unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY #MYTEST
-#    unset all_proxy ALL_PROXY no_proxy NO_PROXY #MYTEST
-#   CMS_PATH="$CMSSW_BASE" cmsRun -j job_report.xml Pset_cmsRun.py || { echo "cmsRun failed for step $STEP_NUM"; exit 1; } #MYTEST
+#    mkdir -p "$CMSSW_BASE/SITECONF/local/JobConfig" # MYTEST
+#    cp /home/marco/development/results/WMCore/manual_test/site-local-config.xml "$CMSSW_BASE/SITECONF/local/JobConfig/site-local-config.xml" # MYTEST
+#    unset FRONTIER_PROXY # MYTEST
+#    unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY # MYTEST
+#    unset all_proxy ALL_PROXY no_proxy NO_PROXY # MYTEST
+#    CMS_PATH="$CMSSW_BASE" cmsRun -j job_report.xml Pset_cmsRun.py || { echo "cmsRun failed for step $STEP_NUM"; exit 1; } # MYTEST
     cmsRun -j job_report.xml Pset_cmsRun.py || { echo "cmsRun failed for step $STEP_NUM"; exit 1; }
     )
 }
@@ -128,13 +128,13 @@ run_stageout() {
     fi
     (
     source "$SCRIPT_DIR/submit_env.sh"
-    #setup_local_env ##MYTEST
-    #export CVMFS="/cvmfs/cms.cern.ch" ##MYTEST
-    export PYTHONPATH="PYTHONPATH:$SCRIPT_DIR/WMCore.zip"
-    set +x ##MYTEST
+    #setup_local_env # MYTEST
+    #export CVMFS="/cvmfs/cms.cern.ch" # MYTEST
+    export PYTHONPATH="$PYTHONPATH:$SCRIPT_DIR/WMCore.zip"
+    set +x # MYTEST
     setup_cmsset
     setup_python_comp
-    set -x #MYTEST
+    set -x # MYTEST
     "$STAGEOUT_SCRIPT" --request "$REQUEST_JSON" --work-dir "$TMP_DIR" || { echo "Stage-out failed"; exit 1; }
     )
     echo "Stage-out completed."
@@ -149,7 +149,7 @@ print_condor_machine_ad
 
 TMP_DIR=$(mktemp -d -t stepchain-XXXXXXXXXX)
 echo "Created temporary directory: $TMP_DIR"
-#trap "rm -rf '$TMP_DIR'" EXIT #MYTEST
+#trap "rm -rf '$TMP_DIR'" EXIT # MYTEST
 cd "$TMP_DIR"
 
 echo "Extracting $TARBALL_PATH"
@@ -165,7 +165,6 @@ PSETS_DIR="$TMP_DIR/PSets"
 # Number of steps from request (runs in original env; CMS setup is in subshell below)
 NUM_STEPS=$(python3 -S -c "import json; r=json.load(open('$REQUEST_JSON')); print(r.get('StepChain', 1))")
 echo "StepChain has $NUM_STEPS steps"
-
 
 # Run each step
 for STEP_NUM in $(seq 1 "$NUM_STEPS"); do
@@ -211,4 +210,4 @@ echo "All steps completed successfully."
 
 run_stageout
 
-# Cleanup via trap
+# Cleanup via trap (currently disabled, see MYTEST above)
