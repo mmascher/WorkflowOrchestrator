@@ -8,7 +8,7 @@ Error      = err/run.$(SITE).$(Cluster).$(Process)
 
 should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
-transfer_input_files = execute_stepchain.sh,submit_env.sh,event_splitter_out/job$(Process).json,event_splitter_out/request_psets.tar.gz
+transfer_input_files = execute_stepchain.sh,submit_env.sh,stage_out.py,WMCore.zip,event_splitter_out/job$(Process).json,event_splitter_out/request_psets.tar.gz
 transfer_output_files = output.tgz
 transfer_output_remaps = "output.tgz = results/output.$(SITE).$(Cluster).$(Process).tgz"
 
