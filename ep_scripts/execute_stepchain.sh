@@ -34,6 +34,9 @@ parse_and_validate_args() {
         echo "Error: job file not found: $JOB_FILE"
         exit 1
     fi
+
+    # This is where stage_out, submit_env and other scripts live
+    SCRIPT_DIR="$(cd "$(dirname "$TARBALL_PATH")/.." && pwd)"
 }
 
 # Print current environment, one variable per line, each prefixed with ---ENV--- 
@@ -65,13 +68,14 @@ print_condor_machine_ad() {
 # Call with current directory = step directory (STEP_DIR). Uses SCRAM_ARCH, CMSSW_VERSION, STEP_NUM.
 run_step_in_cms_env() {
     (
-    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
     source "$SCRIPT_DIR/submit_env.sh"
     setup_cmsset
     export SCRAM_ARCH
     scram project "$CMSSW_VERSION" || { echo "scram project failed"; exit 71; }
     cd "$CMSSW_VERSION"
+    set +x ##MYTEST
     eval $(scram runtime -sh)
+    set -x ##MYTEST
     cd ..
 
     edm_pset_pickler.py --input "PSet_base.py" --output_pkl "Pset.pkl" || {
@@ -116,7 +120,6 @@ run_stageout() {
         return 0
     fi
     echo "========== Stage-out (steps with KeepOutput=true) =========="
-    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
     STAGEOUT_SCRIPT="$SCRIPT_DIR/stage_out.py"
     if [ ! -f "$STAGEOUT_SCRIPT" ]; then
         echo "Stage-out skipped: stage_out.py not found at $STAGEOUT_SCRIPT"
