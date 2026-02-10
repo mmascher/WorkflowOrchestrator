@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.2.0] - 2026-02-10
+
+### Added
+
+- **Stageout script** (`ep_scripts/stage_out.py`): Transfers output files from the worker node to the site storage element using WMCore `StageOutMgr` and the site's storage config. Supports `--lfn`/`--local` pairs for explicit files or `--request`/`--work-dir` mode for automatic discovery from a stepchain request. See [ep_scripts/README.md](ep_scripts/README.md).
+- **HTCondor examples** (`samples/htcondor/`): Sample JDL, wrapper script (`run.sh`), and site list for submitting one StepChain job per site as a Grid validation. Includes a pre-packaged `WMCore.zip` for the worker. See [htcondor/README.md](samples/htcondor/README.md).
+- Stageout integrated into `execute_stepchain.sh`: the executor now stages out output files after the last step completes.
+
+### Changed
+
+- **PEP 08 compliance**: Renamed `src/python/JobSplitters/EventSplitter.py` to `src/python/job_splitters/event_splitter.py` and updated all references.
+- Removed CRAB-specific references from `submit_env.sh`.
+
+### Fixed
+
+- Fixed `ep_scripts` path resolution in `execute_stepchain.sh`.
+- Fixed stageout environment setup to work correctly on the Grid.
+- Code style cleanup in `execute_stepchain.sh`.
+
 ## [0.1.1] - 2025-02-07
 
 ### Fixed
@@ -24,5 +43,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - event_splitter requires WMCore on `PYTHONPATH` (e.g. `../WMCore/src/python`).
 - `execute_stepchain.sh` requires `edm_pset_pickler.py`, `edm_pset_tweak.py`, `cmssw_handle_nEvents.py` on PATH (e.g. from cmssw-wm-tools) and a CMS/SCRAM environment (e.g.: the cmssw-el7 for the `SMP-RunIISummer20UL17pp5TeVwmLHEGS` example in the repo).
 
+[0.2.0]: https://github.com/dmwm/WorkflowOrchestrator/releases/tag/v0.2.0
 [0.1.1]: https://github.com/dmwm/WorkflowOrchestrator/releases/tag/v0.1.1
 [0.1.0]: https://github.com/dmwm/WorkflowOrchestrator/releases/tag/v0.1.0
