@@ -45,4 +45,6 @@ ep_scripts/stage_out.py --lfn /store/temp/user/you.abc123/destfile --local sourc
 
 ## DAG generator (submit-time)
 
-**create_stepchain_dag.py** (in `src/python/job_splitters/`) generates HTCondor DAG and submit files from event_splitter output. See [samples/htcondor/README.md](../samples/htcondor/README.md) for the full DAG workflow and usage.
+**create_stepchain_dag.py** (in `src/python/micro_agent/`) generates HTCondor DAG and submit files from event_splitter output. See [samples/htcondor/README.md](../samples/htcondor/README.md) for the full DAG workflow and usage.
+
+**postjob.py** — DAG POST script run after each node job completes. Placeholder for user logic. Default behavior: exits 1 on first invocation (triggers 6h DEFER retry), exits 0 on second. Receives `$JOB` (node name) as first argument. Copied to the DAG directory by `create_stepchain_dag.py`.

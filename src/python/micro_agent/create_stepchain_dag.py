@@ -61,7 +61,14 @@ def read_sitelist(sitelist_path):
     return ", ".join(sites)
 
 
-def write_dag_file(output_path, job_indices, submit_file_name, dag_retries=2):
+def write_dag_file(
+    output_path,
+    job_indices,
+    submit_file_name,
+    post_script_name,
+    dag_retries=2,
+    post_defer_delay_sec=21600,
+):
     """Write the DAG file."""
     lines = [
         "# DAG generated from event_splitter output",
@@ -75,6 +82,11 @@ def write_dag_file(output_path, job_indices, submit_file_name, dag_retries=2):
     lines.append("")
     for idx in job_indices:
         lines.append(f"RETRY Job{idx} {dag_retries} UNLESS-EXIT 1")
+    lines.append("")
+    for idx in job_indices:
+        lines.append(
+            f"SCRIPT DEFER 1 {post_defer_delay_sec} POST Job{idx} {post_script_name} $JOB"
+        )
 
     content = "\n".join(lines) + "\n"
     with open(output_path, "w") as f:
@@ -130,6 +142,21 @@ requirements = {retry_requirements}
         f.write(content)
 
 
+def copy_post_script(output_dir):
+    """Copy postjob.py from ep_scripts to output_dir so DAGMan can find it."""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
+    src = os.path.join(repo_root, "ep_scripts", "postjob.py")
+    dst = os.path.join(output_dir, "postjob.py")
+    if os.path.isfile(src):
+        import shutil
+
+        shutil.copy(src, dst)
+        os.chmod(dst, 0o755)
+        return dst
+    return None
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Generate HTCondor DAG and submit files from event_splitter output.",
@@ -171,6 +198,12 @@ def parse_args():
         default=3,
         help="Job-level retries on different machine (default: 3)",
     )
+    parser.add_argument(
+        "--post-defer-delay",
+        type=int,
+        default=21600,
+        help="Seconds to wait before retrying POST script after exit 1 (default: 21600 = 6h)",
+    )
     return parser.parse_args()
 
 
@@ -184,7 +217,16 @@ def main():
     # Use basename for submit file reference in DAG (user runs from same dir)
     submit_file_name = os.path.basename(args.output_submit)
 
-    write_dag_file(args.output_dag, job_indices, submit_file_name)
+    write_dag_file(
+        args.output_dag,
+        job_indices,
+        submit_file_name,
+        "postjob.py",
+        post_defer_delay_sec=args.post_defer_delay,
+    )
+    output_dir = os.path.dirname(os.path.abspath(args.output_dag)) or "."
+    copy_post_script(output_dir)
+
     write_submit_file(
         output_path=args.output_submit,
         event_splitter_dir=args.event_splitter_dir,
