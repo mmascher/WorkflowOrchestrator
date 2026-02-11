@@ -42,3 +42,7 @@ setup_python_comp
 
 ep_scripts/stage_out.py --lfn /store/temp/user/you.abc123/destfile --local sourcefile
 ```
+
+## DAG generator (submit-time)
+
+**create_stepchain_dag.py** (in `src/python/job_splitters/`) generates HTCondor DAG and submit files from event_splitter output. See [samples/htcondor/README.md](../samples/htcondor/README.md) for the full DAG workflow and usage.

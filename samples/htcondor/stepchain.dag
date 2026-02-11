@@ -1,0 +1,10 @@
+# DAG generated from event_splitter output
+
+JOB Job1 job.submit
+JOB Job2 job.submit
+
+VARS Job1 JOB_ID="1"
+VARS Job2 JOB_ID="2"
+
+RETRY Job1 2 UNLESS-EXIT 1
+RETRY Job2 2 UNLESS-EXIT 1
