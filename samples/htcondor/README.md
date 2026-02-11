@@ -23,14 +23,17 @@ mkdir -p log out err results
 
 Copy the following files into this directory:
 
-1. **`execute_stepchain.sh`** and **`submit_env.sh`** from `ep_scripts/`:
+1. **`execute_stepchain.sh`**, **`submit_env.sh`**, and **`stage_out.py`** from `ep_scripts/`:
 
    ```bash
    cp ../../ep_scripts/execute_stepchain.sh .
    cp ../../ep_scripts/submit_env.sh .
+   cp ../../ep_scripts/stage_out.py .
    ```
 
-2. **event_splitter output** — place it in an `event_splitter_out/` subdirectory. This must contain:
+2. **`WMCore.zip`** — Pre-packaged WMCore libraries for the worker. Must be present in this directory (provided in the repo).
+
+3. **event_splitter output** — place it in an `event_splitter_out/` subdirectory. This must contain:
    - `job0.json`, `job1.json`, …, `job<NSites-1>.json` (one per site)
    - `request_psets.tar.gz`
 
@@ -42,6 +45,8 @@ The final layout should look like:
 htcondor/
 ├── execute_stepchain.sh
 ├── submit_env.sh
+├── stage_out.py
+├── WMCore.zip
 ├── event_splitter_out/
 │   ├── job0.json
 │   ├── job1.json
@@ -62,4 +67,4 @@ htcondor/
 condor_submit job.jdl
 ```
 
-This queues one job per site in `sitelist.txt`. Each job transfers `execute_stepchain.sh`, `submit_env.sh`, the corresponding `job$(Process).json`, and `request_psets.tar.gz` to the worker node, runs the StepChain, and transfers the output tarball back into `results/`.
+This queues one job per site in `sitelist.txt`. Each job transfers `execute_stepchain.sh`, `submit_env.sh`, `stage_out.py`, `WMCore.zip`, the corresponding `job$(Process).json`, and `request_psets.tar.gz` to the worker node, runs the StepChain, and transfers the output tarball back into `results/`.
