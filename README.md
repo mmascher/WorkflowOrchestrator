@@ -1,5 +1,7 @@
 # WorkflowOrchestrator
 
+This project is intended as a proof of concept for the Workflow Orchestrator that could potentially replace WMAgent for the CMS Workflow Management system of CMS.
+
 ## Repo structure
 
 The repo is organized around three main areas:
