@@ -10,6 +10,8 @@ Sample HTCondor JDL and wrapper script for submitting StepChain jobs. Two submis
 Before submitting, create the required output directories:
 
 ```bash
+mkdir test_sites
+cd test_sites
 mkdir -p log out err results
 ```
 
@@ -22,27 +24,33 @@ mkdir -p log out err results
 
 ## Input Files
 
-Copy the following files into this directory:
+Copy the necessary files into this directory:
 
-1. **`execute_stepchain.sh`**, **`submit_env.sh`**, and **`stage_out.py`** from `ep_scripts/`:
+1. **scripts from the repo**:
 
    ```bash
    WO_DIR=<path_to_WorkflowOrchestrator>
-   mkdir test_sites
-   cd test_sites
    cp "$WO_DIR/ep_scripts/execute_stepchain.sh" .
    cp "$WO_DIR/ep_scripts/submit_env.sh" .
    cp "$WO_DIR/ep_scripts/stage_out.py" .
+   cp "$WO_DIR/samples/htcondor/WMCore.zip" .
+
+   cp "$WO_DIR/samples/htcondor/job.jdl" .
+   cp "$WO_DIR/samples/htcondor/run.sh" .
+   cp "$WO_DIR/samples/htcondor/sitelist.txt" .
+
+   cp "$WO_DIR/src/python/micro_agent/postjob.py" ,
+
    ```
 
-2. **`WMCore.zip`** — Pre-packaged WMCore libraries for the worker. Must be present in this directory (provided in the repo).
+2. **event_splitter output** — place it in an `event_splitter_out/` subdirectory:
+```
+export PYTHONPATH=`pwd`/WMCore.zip
+$WO_DIR/src/python/job_splitters/event_splitter.py   --request $WO_DIR/samples/cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792/request.json   --splitting $WO_DIR/samples/cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792/splitting.json   --psets $WO_DIR/samples/cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792/PSets/   --output-dir event_splitter_out
+Generated 18073 jobs: job1..job18073.json, request_psets.tar.gz in event_splitter_out
+```
 
-3. **event_splitter output** — place it in an `event_splitter_out/` subdirectory:
-   - **One-per-site mode:** `job0.json`, `job1.json`, …, `job<NSites-1>.json` (one per site)
-   - **DAG mode:** `job1.json`, `job2.json`, … (1-based from event_splitter)
-   - Both modes require `request_psets.tar.gz`
-
-   See the [event_splitter README](../../src/python/job_splitters/README.md) for how to produce these files.
+See the [event_splitter README](../../src/python/job_splitters/README.md) for more details about the splitter.
 
 The final layout should look like:
 
@@ -69,8 +77,6 @@ htcondor/
 └── sitelist.txt
 ```
 
-For **DAG mode**, `event_splitter_out/` must contain `job1.json`, `job2.json`, … (1-based from event_splitter).
-
 ## Submission
 
 ### One job per site
@@ -83,21 +89,7 @@ This queues one job per site in `sitelist.txt`. Each job transfers `execute_step
 
 ### DAG workflow (all event_splitter jobs)
 
-To run **one Condor job per event_splitter job** (full event-based splitting):
-
-1. **Run event_splitter** with `--output-dir` (e.g. `event_splitter_out/`):
-
-   ```bash
-   WO_DIR=<path_to_WorkflowOrchestrator>
-   export PYTHONPATH=<path_to_WMCore>/src/python
-   mkdir test_dag
-   cd test_dag
-   python "$WO_DIR/src/python/job_splitters/event_splitter.py" \
-     --request <request.json> --splitting <splitting.json> \
-     --psets <PSets/> --output-dir event_splitter_out/
-   ```
-
-2. **Create DAG and submit file** (proxy and sitelist required):
+1. **Create DAG and submit file** (proxy and sitelist required):
 
    ```bash
    python "$WO_DIR/src/python/micro_agent/create_stepchain_dag.py" \
@@ -108,7 +100,7 @@ To run **one Condor job per event_splitter job** (full event-based splitting):
 
    This generates `stepchain.dag`, `job.submit`, and `postjob.py` (POST script; copy from `ep_scripts/`). The script requires `event_splitter_out/` with `job1.json`, `job2.json`, ..., and `request_psets.tar.gz`.
 
-3. **Submit the DAG:**
+2. **Submit the DAG:**
 
    ```bash
    condor_submit_dag stepchain.dag
