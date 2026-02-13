@@ -142,21 +142,6 @@ requirements = {retry_requirements}
         f.write(content)
 
 
-def copy_post_script(output_dir):
-    """Copy postjob.py from ep_scripts to output_dir so DAGMan can find it."""
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
-    src = os.path.join(repo_root, "ep_scripts", "postjob.py")
-    dst = os.path.join(output_dir, "postjob.py")
-    if os.path.isfile(src):
-        import shutil
-
-        shutil.copy(src, dst)
-        os.chmod(dst, 0o755)
-        return dst
-    return None
-
-
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Generate HTCondor DAG and submit files from event_splitter output.",
@@ -225,7 +210,6 @@ def main():
         post_defer_delay_sec=args.post_defer_delay,
     )
     output_dir = os.path.dirname(os.path.abspath(args.output_dag)) or "."
-    copy_post_script(output_dir)
 
     write_submit_file(
         output_path=args.output_submit,
