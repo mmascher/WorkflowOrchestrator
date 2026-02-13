@@ -1,6 +1,6 @@
 # HTCondor Sample Submission
 
-Sample HTCondor JDL and wrapper script for submitting StepChain jobs. Two submission modes are supported:
+Sample HTCondor JDL and wrapper script for submitting StepChain jobs. Two submission examples are provided:
 
 1. **One job per site** (`job.jdl`) — useful for validating StepChain execution across the Grid. Iterates over sites in `sitelist.txt`.
 2. **DAG workflow** — one Condor job per event_splitter job. Run all split jobs via DAGMan, with retry-on-different-machine support.
@@ -27,9 +27,12 @@ Copy the following files into this directory:
 1. **`execute_stepchain.sh`**, **`submit_env.sh`**, and **`stage_out.py`** from `ep_scripts/`:
 
    ```bash
-   cp ../../ep_scripts/execute_stepchain.sh .
-   cp ../../ep_scripts/submit_env.sh .
-   cp ../../ep_scripts/stage_out.py .
+   WO_DIR=<path_to_WorkflowOrchestrator>
+   mkdir test_sites
+   cd test_sites
+   cp "$WO_DIR/ep_scripts/execute_stepchain.sh" .
+   cp "$WO_DIR/ep_scripts/submit_env.sh" .
+   cp "$WO_DIR/ep_scripts/stage_out.py" .
    ```
 
 2. **`WMCore.zip`** — Pre-packaged WMCore libraries for the worker. Must be present in this directory (provided in the repo).
@@ -85,8 +88,11 @@ To run **one Condor job per event_splitter job** (full event-based splitting):
 1. **Run event_splitter** with `--output-dir` (e.g. `event_splitter_out/`):
 
    ```bash
+   WO_DIR=<path_to_WorkflowOrchestrator>
    export PYTHONPATH=<path_to_WMCore>/src/python
-   python ../src/python/job_splitters/event_splitter.py \
+   mkdir test_dag
+   cd test_dag
+   python "$WO_DIR/src/python/job_splitters/event_splitter.py" \
      --request <request.json> --splitting <splitting.json> \
      --psets <PSets/> --output-dir event_splitter_out/
    ```
@@ -94,7 +100,7 @@ To run **one Condor job per event_splitter job** (full event-based splitting):
 2. **Create DAG and submit file** (proxy and sitelist required):
 
    ```bash
-   python ../../src/python/micro_agent/create_stepchain_dag.py \
+   python "$WO_DIR/src/python/micro_agent/create_stepchain_dag.py" \
      --event-splitter-dir event_splitter_out/ \
      --proxy /tmp/x509up_u$(id -u) \
      --sitelist sitelist.txt
