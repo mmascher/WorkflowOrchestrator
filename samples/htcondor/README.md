@@ -112,7 +112,7 @@ This queues one job per site in `sitelist.txt`. Each job transfers `execute_step
 
 Single JDL with `Queue from seq 1 N`; derives num_jobs, request_cpus, Memory, walltime from request.json (avoids listdir on Ceph). Uses $(Process) for output paths.
 
-1. **Create JDL** (proxy, sitelist, and request.json required):
+1. **Create JDL** (proxy, sitelist, and request.json required). Run this on the submit machine before submitting; no WMCore needed:
 
    ```bash
    python "$WO_DIR/src/python/micro_agent/create_stepchain_jdl.py" \

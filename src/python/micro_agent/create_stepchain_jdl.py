@@ -2,9 +2,12 @@
 """
 Generate HTCondor JDL file from event_splitter output.
 
-Creates a single JDL with Queue from seq 1 N (1-based: job1.json ... jobN.json).
-Derives num_jobs, request_cpus, Memory, and walltime from request.json
-(Multicore, Memory, TimePerEvent, Step1.EventsPerJob, etc.).
+Runs as a standalone script, typically before any jobs are submitted (e.g. on the
+submit machine or in CI). No WMCore dependency—uses a local ScramArch→REQUIRED_OS
+mapping. Creates a single JDL with Queue from seq 1 N (1-based: job1.json ...
+jobN.json). Derives num_jobs, request_cpus, Memory, walltime, and REQUIRED_OS
+from request.json (Multicore, Memory, TimePerEvent, Step1.EventsPerJob,
+ScramArch, etc.).
 
 Usage:
   python -m micro_agent.create_stepchain_jdl \\
@@ -17,6 +20,36 @@ import argparse
 import json
 import math
 import os
+
+DEFAULT_REQUIRED_OS = "rhel7"
+
+# ScramArch prefix -> HTCondor REQUIRED_OS (mirrors WMCore WMRuntime.Tools.Scram.ARCH_TO_OS)
+ARCH_TO_OS = {
+    "slc5": ["rhel6"],
+    "slc6": ["rhel6"],
+    "slc7": ["rhel7"],
+    "el8": ["rhel8"],
+    "cc8": ["rhel8"],
+    "cs8": ["rhel8"],
+    "alma8": ["rhel8"],
+    "el9": ["rhel9"],
+    "cs9": ["rhel9"],
+}
+
+
+def scram_arch_to_required_os(scram_arch=None):
+    """Map ScramArch (or list) to HTCondor REQUIRED_OS. Mirrors WMCore BasePlugin.scramArchtoRequiredOS."""
+    if not scram_arch:
+        return "any"
+    if isinstance(scram_arch, str):
+        scram_arch = [scram_arch]
+    elif not isinstance(scram_arch, (list, tuple)):
+        return "any"
+    required = set()
+    for arch in scram_arch:
+        prefix = arch.split("_")[0]
+        required.update(ARCH_TO_OS.get(prefix, []))
+    return ",".join(sorted(required)) if required else "any"
 
 
 def read_request(request_path):
@@ -36,12 +69,16 @@ def read_request(request_path):
     if time_per_event is not None and events_per_job:
         # TimePerEvent in sec/event; add 50% margin for StepChain overhead
         walltime_mins = int(math.ceil(float(time_per_event) * float(events_per_job) * 1.5 / 60))
+    scram_arch = req.get("ScramArch")
+    required_os = scram_arch_to_required_os(scram_arch) if scram_arch else DEFAULT_REQUIRED_OS
+
     return {
         "request_cpus": req.get("Multicore", 1),
         "request_memory": req.get("Memory", 1000),
         "num_jobs": num_jobs,
         "walltime_mins": walltime_mins,
         "batch_name": req.get("RequestName") or req.get("_id"),
+        "required_os": required_os,
     }
 
 
@@ -71,6 +108,7 @@ def write_jdl_file(
     request_cpus=1,
     request_memory=1000,
     walltime_mins=180,
+    required_os="rhel7",
 ):
     """Write the HTCondor JDL file."""
     retry_requirements = (
@@ -103,7 +141,7 @@ request_cpus = {request_cpus}
 request_memory = {request_memory}
 +MaxWallTimeMins = {walltime_mins}
 
-+REQUIRED_OS = "rhel7"
++REQUIRED_OS = "{required_os}"
 
 # Retry on different machine when run.sh fails (CERN batch docs pattern)
 on_exit_remove = (ExitBySignal == False) && (ExitCode == 0)
@@ -181,6 +219,7 @@ def main():
     request_memory = req_params.get("request_memory", 1000)
     walltime_mins = req_params.get("walltime_mins", 180)
     batch_name = args.batch_name or req_params.get("batch_name")
+    required_os = req_params.get("required_os", DEFAULT_REQUIRED_OS)
 
     sites_str = read_sitelist(args.sitelist)
 
@@ -196,6 +235,7 @@ def main():
         request_cpus=request_cpus,
         request_memory=request_memory,
         walltime_mins=walltime_mins,
+        required_os=required_os,
     )
 
     print(f"Generated JDL with {num_jobs} jobs: {args.output_jdl}")
