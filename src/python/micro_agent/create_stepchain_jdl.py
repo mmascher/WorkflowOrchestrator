@@ -90,7 +90,7 @@ Error      = err/run.$(Cluster).$(Process)
 
 should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
-transfer_input_files = execute_stepchain.sh,submit_env.sh,stage_out.py,WMCore.zip,{event_splitter_dir}/job$(Item).json,{event_splitter_dir}/request_psets.tar.gz
+transfer_input_files = execute_stepchain.sh,submit_env.sh,stage_out.py,WMCore.zip,{event_splitter_dir}/job$(Index).json,{event_splitter_dir}/request_psets.tar.gz
 transfer_output_files = output.tgz
 transfer_output_remaps = "output.tgz = results/output.$(Cluster).$(Process).tgz"
 
@@ -110,7 +110,7 @@ on_exit_remove = (ExitBySignal == False) && (ExitCode == 0)
 max_retries = {max_retries}
 requirements = {retry_requirements}
 
-Queue 1 Item from seq 1 1 {num_jobs}
+Queue Index from seq 1 {num_jobs} |
 """
     with open(output_path, "w") as f:
         f.write(content)

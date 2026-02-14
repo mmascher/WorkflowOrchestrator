@@ -40,7 +40,7 @@ Copy the necessary files into this directory:
    cp "$WO_DIR/samples/htcondor/run.sh" .
    cp "$WO_DIR/samples/htcondor/sitelist.txt" .
 
-   cp "$WO_DIR/src/python/micro_agent/postjob.py" ,
+   cp "$WO_DIR/src/python/micro_agent/postjob.py" .
 
    ```
 
