@@ -3,4 +3,4 @@ set -x
 chmod +x execute_stepchain.sh
 ./execute_stepchain.sh request_psets.tar.gz job*.json
 
-tar cvzf output.tgz /tmp/stepchain-*
+tar cvzf output.tgz --exclude='*.root' /tmp/stepchain-*
