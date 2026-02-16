@@ -9,6 +9,7 @@
 # Intended to be executed on Grid worker nodes where the CMS environment is available (see setup_cmsset call).
 
 set -e
+set -o pipefail
 set -x # MYTEST
 
 # Resolve to absolute paths so they work after we cd to TMP_DIR (e.g. inside Singularity)
@@ -19,21 +20,29 @@ resolve_abs() {
     esac
 }
 
+# Exit codes per https://twiki.cern.ch/twiki/bin/view/CMSPublic/JobExitCodes and WMCore WMExceptions
+EXIT_INVALID_ARGS=50113      # Executable did not get enough arguments
+EXIT_MISSING_INPUT=80000     # Internal error in job wrapper (missing input files)
+EXIT_CFG_GEN=10040           # failed to generate cmsRun cfg file at runtime
+EXIT_SCRAM=71                # Failed to initiate Scram project (already in WMExceptions)
+EXIT_CMSRUN_UNKNOWN=50116    # Could not determine exit code of cmsRun executable at runtime
+EXIT_STAGEOUT=60324          # Other stageout exception
+
 # Parse argv and validate; sets TARBALL_PATH and JOB_FILE (absolute), exits on error.
 parse_and_validate_args() {
     if [ "$#" -ne 2 ]; then
         echo "Usage: $(basename "$0") <request_psets.tar.gz> <job_N.json>"
-        exit 1
+        exit $EXIT_INVALID_ARGS
     fi
     TARBALL_PATH=$(resolve_abs "$1")
     JOB_FILE=$(resolve_abs "$2")
     if [ ! -f "$TARBALL_PATH" ]; then
         echo "Error: tarball not found: $TARBALL_PATH"
-        exit 1
+        exit $EXIT_MISSING_INPUT
     fi
     if [ ! -f "$JOB_FILE" ]; then
         echo "Error: job file not found: $JOB_FILE"
-        exit 1
+        exit $EXIT_MISSING_INPUT
     fi
 
     # This is where stage_out, submit_env and other scripts live
@@ -72,7 +81,7 @@ run_step_in_cms_env() {
     source "$SCRIPT_DIR/submit_env.sh"
     setup_cmsset
     export SCRAM_ARCH
-    scram project "$CMSSW_VERSION" || { echo "scram project failed"; exit 71; }
+    scram project "$CMSSW_VERSION" || { echo "scram project failed"; exit $EXIT_SCRAM; }
     cd "$CMSSW_VERSION"
     set +x # MYTEST
     eval $(scram runtime -sh)
@@ -81,18 +90,18 @@ run_step_in_cms_env() {
 
     edm_pset_pickler.py --input "PSet_base.py" --output_pkl "Pset.pkl" || {
         echo "edm_pset_pickler failed for step $STEP_NUM"
-        exit 1
+        exit $EXIT_CFG_GEN
     }
 
     edm_pset_tweak.py \
         --input_pkl "Pset.pkl" \
         --output_pkl "Pset.pkl" \
         --json "tweak.json" \
-        --create_untracked_psets || { echo "edm_pset_tweak failed"; exit 1; }
+        --create_untracked_psets || { echo "edm_pset_tweak failed"; exit $EXIT_CFG_GEN; }
 
     cmssw_handle_nEvents.py --input_pkl "Pset.pkl" --output_pkl "Pset.pkl" || {
         echo "cmssw_handle_nEvents failed for step $STEP_NUM"
-        exit 1
+        exit $EXIT_CFG_GEN
     }
 
     cat > Pset_cmsRun.py << 'WRAPPER'
@@ -108,8 +117,24 @@ WRAPPER
 #    unset FRONTIER_PROXY # MYTEST
 #    unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY # MYTEST
 #    unset all_proxy ALL_PROXY no_proxy NO_PROXY # MYTEST
-#    CMS_PATH="$CMSSW_BASE" cmsRun -j job_report.xml Pset_cmsRun.py || { echo "cmsRun failed for step $STEP_NUM"; exit 1; } # MYTEST
-    cmsRun -j job_report.xml Pset_cmsRun.py || { echo "cmsRun failed for step $STEP_NUM"; exit 1; }
+#    CMS_PATH="$CMSSW_BASE" cmsRun -j job_report.xml Pset_cmsRun.py # MYTEST
+    cmsRun -j job_report.xml Pset_cmsRun.py
+    CMSRUN_EXIT=$?
+    if [ "$CMSRUN_EXIT" -ne 0 ]; then
+        echo "cmsRun failed for step $STEP_NUM (exit code $CMSRUN_EXIT)"
+        exit $CMSRUN_EXIT
+    fi
+    # cmsRun can exit 0 despite failures - check job report (FrameworkJobReport)
+    if [ -f "job_report.xml" ] && grep -qE 'FrameworkError|Status="Failed"' job_report.xml 2>/dev/null; then
+        # Try to extract ExitStatus from FrameworkError to use as exit code
+        REPORT_EXIT=$(grep -oE 'ExitStatus="[0-9]+"' job_report.xml 2>/dev/null | head -1 | grep -oE '[0-9]+')
+        if [ -n "$REPORT_EXIT" ]; then
+            echo "Job report indicates cmsRun failure for step $STEP_NUM (ExitStatus=$REPORT_EXIT)"
+            exit $REPORT_EXIT
+        fi
+        echo "Job report indicates cmsRun failure for step $STEP_NUM (FrameworkError or Status=Failed)"
+        exit $EXIT_CMSRUN_UNKNOWN
+    fi
     )
 }
 
@@ -135,8 +160,13 @@ run_stageout() {
     setup_cmsset
     setup_python_comp
     set -x # MYTEST
-    "$STAGEOUT_SCRIPT" --request "$REQUEST_JSON" --work-dir "$TMP_DIR" || { echo "Stage-out failed"; exit 1; }
+    "$STAGEOUT_SCRIPT" --request "$REQUEST_JSON" --work-dir "$TMP_DIR" || { echo "Stage-out failed"; exit $EXIT_STAGEOUT; }
     )
+    STAGEOUT_EXIT=$?
+    if [ "$STAGEOUT_EXIT" -ne 0 ]; then
+        echo "Stage-out failed (exit code $STAGEOUT_EXIT)"
+        exit $STAGEOUT_EXIT
+    fi
     echo "Stage-out completed."
 }
 
@@ -156,7 +186,7 @@ echo "Extracting $TARBALL_PATH"
 tar -xzf "$TARBALL_PATH"
 if [ ! -f "request.json" ] || [ ! -d "PSets" ]; then
     echo "Error: tarball must contain request.json and PSets/"
-    exit 1
+    exit $EXIT_MISSING_INPUT
 fi
 
 REQUEST_JSON="$TMP_DIR/request.json"
@@ -182,7 +212,7 @@ for STEP_NUM in $(seq 1 "$NUM_STEPS"); do
     BASE_PSET="$PSETS_DIR/PSet_cmsRun${STEP_NUM}_${STEP_NAME}.py"
     if [ ! -f "$BASE_PSET" ]; then
         echo "Error: Base PSet not found: $BASE_PSET"
-        exit 1
+        exit $EXIT_CFG_GEN
     fi
     cp "$BASE_PSET" "$STEP_DIR/PSet_base.py"
 
@@ -199,9 +229,9 @@ if 'tweaks' not in job or step_key not in job['tweaks']:
     sys.exit(1)
 with open('tweak.json', 'w') as f:
     json.dump(job['tweaks'][step_key], f, indent=2)
-" || { echo "Failed to write tweak.json from job file"; exit 1; }
+" || { echo "Failed to write tweak.json from job file"; exit $EXIT_CFG_GEN; }
 
-    run_step_in_cms_env || { echo "Step $STEP_NUM failed (scram/pickler/tweak/cmsRun)"; exit 1; }
+    run_step_in_cms_env || { STEP_EXIT=$?; echo "Step $STEP_NUM failed (exit code $STEP_EXIT)"; exit $STEP_EXIT; }
 
     cd "$TMP_DIR"
 done
@@ -210,4 +240,5 @@ echo "All steps completed successfully."
 
 run_stageout
 
-# Cleanup via trap (currently disabled, see MYTEST above)
+echo "execute_stepchain.sh completed successfully."
+exit 0
