@@ -32,6 +32,7 @@ def build_job_tweak_json(
     mask,
     lhe_input=False,
     chain_input_file=None,
+    chain_input_files=None,
     set_output_filename=None,
     output_module_name=None,
 ):
@@ -82,7 +83,15 @@ def build_job_tweak_json(
             % lumis_to_process
         )
 
-    if chain_input_file:
+    if chain_input_files:
+        tweak["process.source.fileNames"] = (
+            "customTypeCms.untracked.vstring([%s])"
+            % ", ".join(repr(f) for f in chain_input_files)
+        )
+        tweak["process.maxEvents"] = (
+            "customTypeCms.untracked.PSet(input=cms.untracked.int32(-1))"
+        )
+    elif chain_input_file:
         tweak["process.source.fileNames"] = (
             "customTypeCms.untracked.vstring([%r])" % chain_input_file
         )
@@ -233,6 +242,7 @@ def generate_eventbased_jobs(request_json_path, splitting_json_path):
     # Flatten jobs and precompute PSetTweak JSON per job per step (consumed by edm_pset_tweak on the worker).
     # Output: job_index + tweaks only (no mask; worker uses precomputed tweaks).
     num_steps = req.get("StepChain", 1)
+    step1_num_copies = req.get("Step1", {}).get("NumCopies", 1)
     jobs_out = []
     job_id = 1
     for group in job_groups:
@@ -259,14 +269,22 @@ def generate_eventbased_jobs(request_json_path, splitting_json_path):
                     set_output_filename = "file:%s.root" % output_module_name
                 # Step 2+ read from previous step; path is relative to stepN/ dir (../step(N-1)/OutputModule.root)
                 chain_input_file = None
+                chain_input_files = None
                 if step_num > 1:
                     step_key = "Step%d" % step_num
                     prev_output_module = req.get(step_key, {}).get("InputFromOutputModule", "RAWSIMoutput")
-                    chain_input_file = "file:../step%d/%s.root" % (step_num - 1, prev_output_module)
+                    if step_num == 2 and step1_num_copies > 1:
+                        chain_input_files = [
+                            "file:../step1/copy%d/%s.root" % (i, prev_output_module)
+                            for i in range(step1_num_copies)
+                        ]
+                    else:
+                        chain_input_file = "file:../step%d/%s.root" % (step_num - 1, prev_output_module)
                 tweaks[str(step_num)] = build_job_tweak_json(
                     mask_dict,
                     lhe_input=split_params.get("lheInputFiles", False),
                     chain_input_file=chain_input_file,
+                    chain_input_files=chain_input_files,
                     set_output_filename=set_output_filename,
                     output_module_name=output_module_name,
                 )

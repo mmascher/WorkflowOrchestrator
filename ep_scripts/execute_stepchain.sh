@@ -202,7 +202,6 @@ for STEP_NUM in $(seq 1 "$NUM_STEPS"); do
     STEP_KEY="Step${STEP_NUM}"
     STEP_DIR="$TMP_DIR/step${STEP_NUM}"
     mkdir -p "$STEP_DIR"
-    cd "$STEP_DIR"
 
     # Step config from request (runs in original env; CMS setup is in subshell below)
     CMSSW_VERSION=$(python3 -S -c "import json; r=json.load(open('$REQUEST_JSON')); print(r['$STEP_KEY']['CMSSWVersion'])")
@@ -214,11 +213,66 @@ for STEP_NUM in $(seq 1 "$NUM_STEPS"); do
         echo "Error: Base PSet not found: $BASE_PSET"
         exit $EXIT_CFG_GEN
     fi
-    cp "$BASE_PSET" "$STEP_DIR/PSet_base.py"
 
-    # Write precomputed tweak from job file (runs in original env; only needs job file, not PSet.pkl)
-    export JOB_FILE STEP_NUM
-    python3 -S -c "
+    NUM_COPIES=$(python3 -S -c "import json; r=json.load(open('$REQUEST_JSON')); print(r.get('Step1',{}).get('NumCopies',1))")
+
+    if [ "$STEP_NUM" -eq 1 ] && [ "$NUM_COPIES" -gt 1 ]; then
+        # Step 1 with num_copies > 1: split event interval, run cmsRun copies in parallel
+        OUTPUT_MODULE=$(python3 -S -c "import json; r=json.load(open('$REQUEST_JSON')); print(r.get('Step2',{}).get('InputFromOutputModule','RAWSIMoutput'))")
+        PIDS=()
+        for COPY_IDX in $(seq 0 $((NUM_COPIES - 1))); do
+            (
+            COPY_DIR="$TMP_DIR/step1/copy${COPY_IDX}"
+            mkdir -p "$COPY_DIR"
+            cd "$COPY_DIR"
+            cp "$BASE_PSET" PSet_base.py
+            export JOB_FILE SCRIPT_DIR STEP_NUM CMSSW_VERSION SCRAM_ARCH
+            export NUM_COPIES OUTPUT_MODULE COPY_IDX
+            python3 -S -c "
+import json, os, re, sys
+job = json.load(open(os.environ['JOB_FILE']))
+tweak = job['tweaks']['1'].copy()
+fe_str = tweak.get('process.source.firstEvent', '')
+m = re.search(r'uint32\s*\(\s*(\d+)\s*\)', fe_str)
+first_event = int(m.group(1)) if m else 0
+me_str = tweak.get('process.maxEvents', '')
+m = re.search(r'int32\s*\(\s*(\d+)\s*\)', me_str)
+total = int(m.group(1)) if m else 0
+num_copies = int(os.environ['NUM_COPIES'])
+copy_idx = int(os.environ['COPY_IDX'])
+per_copy = total // num_copies
+remainder = total % num_copies
+count = per_copy + (1 if copy_idx < remainder else 0)
+base = first_event
+for i in range(copy_idx):
+    base += per_copy + (1 if i < remainder else 0)
+first_event_i = base
+tweak['process.source.firstEvent'] = 'customTypeCms.untracked.uint32(%d)' % first_event_i
+tweak['process.maxEvents'] = 'customTypeCms.untracked.PSet(input=cms.untracked.int32(%d))' % count
+out_mod = os.environ['OUTPUT_MODULE']
+tweak['process.%s.fileName' % out_mod] = \"customTypeCms.untracked.string('file:%s.root')\" % out_mod
+with open('tweak.json', 'w') as f:
+    json.dump(tweak, f, indent=2)
+" || { echo "Failed to write tweak.json for copy $COPY_IDX"; exit $EXIT_CFG_GEN; }
+            run_step_in_cms_env
+            ) &
+            PIDS+=($!)
+        done
+        FAILED=0
+        for p in "${PIDS[@]}"; do
+            if ! wait "$p"; then FAILED=1; fi
+        done
+        if [ "$FAILED" -ne 0 ]; then
+            echo "Step 1 failed (one or more copies failed)"
+            exit $EXIT_CFG_GEN
+        fi
+    else
+        # Normal flow: single tweak, single cmsRun
+        cd "$STEP_DIR"
+        cp "$BASE_PSET" "$STEP_DIR/PSet_base.py"
+
+        export JOB_FILE STEP_NUM
+        python3 -S -c "
 import json, os, sys
 job_file = os.environ['JOB_FILE']
 step_num = int(os.environ['STEP_NUM'])
@@ -231,7 +285,8 @@ with open('tweak.json', 'w') as f:
     json.dump(job['tweaks'][step_key], f, indent=2)
 " || { echo "Failed to write tweak.json from job file"; exit $EXIT_CFG_GEN; }
 
-    run_step_in_cms_env || { STEP_EXIT=$?; echo "Step $STEP_NUM failed (exit code $STEP_EXIT)"; exit $STEP_EXIT; }
+        run_step_in_cms_env || { STEP_EXIT=$?; echo "Step $STEP_NUM failed (exit code $STEP_EXIT)"; exit $STEP_EXIT; }
+    fi
 
     cd "$TMP_DIR"
 done
