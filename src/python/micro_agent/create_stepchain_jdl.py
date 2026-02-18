@@ -123,14 +123,14 @@ def write_jdl_file(
 Executable = {executable}
 
 Log        = log/run.$(Cluster)
-Output     = out/run.$(Cluster).$(Process)
-Error      = err/run.$(Cluster).$(Process)
+Output     = out/run.$(Cluster).$(Process).$(NumJobCompletions)
+Error      = err/run.$(Cluster).$(Process).$(NumJobCompletions)
 
 should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
 transfer_input_files = execute_stepchain.sh,submit_env.sh,stage_out.py,WMCore.zip,{event_splitter_dir}/job$(Index).json,{event_splitter_dir}/request_psets.tar.gz
 transfer_output_files = output.tgz
-transfer_output_remaps = "output.tgz = results/output.$(Cluster).$(Process).tgz"
+transfer_output_remaps = "output.tgz = results/output.$(Cluster).$(Process).$(NumJobCompletions).tgz"
 
 {batch_line}x509userproxy = {proxy_path}
 use_x509userproxy = True
