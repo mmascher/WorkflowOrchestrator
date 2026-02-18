@@ -177,9 +177,25 @@ print_env
 print_condor_job_ad
 print_condor_machine_ad
 
+INITIAL_DIR=$(pwd)
 TMP_DIR=$(mktemp -d -t stepchain-XXXXXXXXXX)
 echo "Created temporary directory: $TMP_DIR"
-#trap "rm -rf '$TMP_DIR'" EXIT # MYTEST
+
+# Cleanup: create output tarball (excluding *.root) and remove TMP_DIR.
+# Runs on normal exit and on SIGTERM/SIGINT so tar is created even if the process is killed.
+cleanup() {
+    if [ "${CLEANUP_DONE:-0}" -eq 1 ]; then return; fi
+    CLEANUP_DONE=1
+    if [ -n "${TMP_DIR:-}" ] && [ -d "$TMP_DIR" ]; then
+        echo "Creating output.tgz from $TMP_DIR (excluding *.root)"
+        tar czf "$INITIAL_DIR/output.tgz" --exclude='*.root' -C "$(dirname "$TMP_DIR")" "$(basename "$TMP_DIR")" 2>/dev/null || true
+        rm -rf "$TMP_DIR"
+    fi
+}
+trap 'cleanup; exit 143' SIGTERM
+trap 'cleanup; exit 130' SIGINT
+trap cleanup EXIT
+
 cd "$TMP_DIR"
 
 echo "Extracting $TARBALL_PATH"
