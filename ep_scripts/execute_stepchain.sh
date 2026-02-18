@@ -186,6 +186,7 @@ echo "Created temporary directory: $TMP_DIR"
 cleanup() {
     if [ "${CLEANUP_DONE:-0}" -eq 1 ]; then return; fi
     CLEANUP_DONE=1
+    echo "======== Exiting at $(TZ=GMT date) ========"
     if [ -n "${TMP_DIR:-}" ] && [ -d "$TMP_DIR" ]; then
         echo "Creating output.tgz from $TMP_DIR (excluding *.root)"
         tar czf "$INITIAL_DIR/output.tgz" --exclude='*.root' -C "$(dirname "$TMP_DIR")" "$(basename "$TMP_DIR")" 2>/dev/null || true
@@ -305,6 +306,7 @@ with open('tweak.json', 'w') as f:
     fi
 
     cd "$TMP_DIR"
+    echo "======== Step $STEP_NUM completed at $(TZ=GMT date) ========"
 done
 
 echo "All steps completed successfully."
