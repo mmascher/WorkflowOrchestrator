@@ -123,6 +123,7 @@
   "FirstLumi": 1,
   "StepChain": 6,
   "Step1": {
+    "NumCopies": 4,
     "KeepOutput": false,
     "ConfigCacheID": "c1dafc016fcdfe5d3492565bc0d9c05e",
     "GlobalTag": "106X_mc2017_realistic_forppRef5TeV_v3",

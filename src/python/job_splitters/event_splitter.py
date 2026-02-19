@@ -280,14 +280,41 @@ def generate_eventbased_jobs(request_json_path, splitting_json_path):
                         ]
                     else:
                         chain_input_file = "file:../step%d/%s.root" % (step_num - 1, prev_output_module)
-                tweaks[str(step_num)] = build_job_tweak_json(
-                    mask_dict,
-                    lhe_input=split_params.get("lheInputFiles", False),
-                    chain_input_file=chain_input_file,
-                    chain_input_files=chain_input_files,
-                    set_output_filename=set_output_filename,
-                    output_module_name=output_module_name,
-                )
+
+                if step_num == 1 and step1_num_copies > 1:
+                    # Step 1 with num_copies > 1: produce one tweak per copy (split event interval)
+                    first_event = mask_dict.get("FirstEvent", 0)
+                    last_event = mask_dict.get("LastEvent", 0)
+                    total = last_event - first_event + 1
+                    per_copy = total // step1_num_copies
+                    remainder = total % step1_num_copies
+                    step1_tweaks = []
+                    base = first_event
+                    for copy_idx in range(step1_num_copies):
+                        count = per_copy + (1 if copy_idx < remainder else 0)
+                        copy_mask = mask_dict.copy()
+                        copy_mask["FirstEvent"] = base
+                        copy_mask["LastEvent"] = base + count - 1
+                        base += count
+                        copy_tweak = build_job_tweak_json(
+                            copy_mask,
+                            lhe_input=split_params.get("lheInputFiles", False),
+                            chain_input_file=None,
+                            chain_input_files=None,
+                            set_output_filename=set_output_filename,
+                            output_module_name=output_module_name,
+                        )
+                        step1_tweaks.append(copy_tweak)
+                    tweaks[str(step_num)] = step1_tweaks
+                else:
+                    tweaks[str(step_num)] = build_job_tweak_json(
+                        mask_dict,
+                        lhe_input=split_params.get("lheInputFiles", False),
+                        chain_input_file=chain_input_file,
+                        chain_input_files=chain_input_files,
+                        set_output_filename=set_output_filename,
+                        output_module_name=output_module_name,
+                    )
             jobs_out.append({"job_index": job_id, "tweaks": tweaks})
             job_id += 1
 
