@@ -167,13 +167,9 @@ with open('tweak.json', 'w') as f:
 "
 }
 
-# Stage-out: transfer output files for steps with KeepOutput=true via stage_out.py (requires SITECONFIG_PATH and WMCore on PYTHONPATH).
+# Stage-out: transfer output files for steps with KeepOutput=true via stage_out.py
 # Uses REQUEST_JSON and TMP_DIR from the calling script.
 run_stageout() {
-    if [ -z "${SITECONFIG_PATH:-}" ] && [ -z "${WMAGENT_SITE_CONFIG_OVERRIDE:-}" ]; then
-        echo "Stage-out skipped (SITECONFIG_PATH not set)."
-        return 0
-    fi
     echo "========== Stage-out (steps with KeepOutput=true) =========="
     STAGEOUT_SCRIPT="$SCRIPT_DIR/stage_out.py"
     if [ ! -f "$STAGEOUT_SCRIPT" ]; then
@@ -189,6 +185,10 @@ run_stageout() {
     setup_cmsset
     setup_python_comp
     set -x # MYTEST
+    if [ -z "${SITECONFIG_PATH:-}" ] && [ -z "${WMAGENT_SITE_CONFIG_OVERRIDE:-}" ]; then
+        echo "Stage-out skipped (SITECONFIG_PATH not set)."
+        return 0
+    fi
     "$STAGEOUT_SCRIPT" --request "$REQUEST_JSON" --work-dir "$TMP_DIR" || { echo "Stage-out failed"; exit $EXIT_STAGEOUT; }
     )
     STAGEOUT_EXIT=$?
