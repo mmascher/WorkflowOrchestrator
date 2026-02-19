@@ -271,6 +271,7 @@ for STEP_NUM in $(seq 1 "$NUM_STEPS"); do
             mkdir -p "$COPY_DIR"
             export JOB_FILE SCRIPT_DIR STEP_NUM CMSSW_VERSION SCRAM_ARCH COPY_IDX
             run_step_in_dir "$COPY_DIR" || exit $EXIT_CFG_GEN
+            echo "======== copy $COPY_IDX completed at $(TZ=GMT date) ========"
             ) &
             PIDS+=($!)
         done
