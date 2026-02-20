@@ -266,18 +266,26 @@ for STEP_NUM in $(seq 1 "$NUM_STEPS"); do
         # Step 1 with num_copies > 1: use precomputed tweaks from event_splitter, run cmsRun copies in parallel
         PIDS=()
         for COPY_IDX in $(seq 0 $((NUM_COPIES - 1))); do
+            COPY_OUT="$TMP_DIR/step1_copy_${COPY_IDX}.out"
+            COPY_ERR="$TMP_DIR/step1_copy_${COPY_IDX}.err"
             (
             COPY_DIR="$TMP_DIR/step1/copy${COPY_IDX}"
             mkdir -p "$COPY_DIR"
             export JOB_FILE SCRIPT_DIR STEP_NUM CMSSW_VERSION SCRAM_ARCH COPY_IDX
             run_step_in_dir "$COPY_DIR" || exit $EXIT_CFG_GEN
             echo "======== copy $COPY_IDX completed at $(TZ=GMT date) ========"
-            ) &
+            ) > "$COPY_OUT" 2> "$COPY_ERR" &
             PIDS+=($!)
         done
         FAILED=0
         for p in "${PIDS[@]}"; do
             if ! wait "$p"; then FAILED=1; fi
+        done
+        for COPY_IDX in $(seq 0 $((NUM_COPIES - 1))); do
+            echo "======== Step 1 copy $COPY_IDX stdout ========"
+            cat "$TMP_DIR/step1_copy_${COPY_IDX}.out"
+            echo "======== Step 1 copy $COPY_IDX stderr ========" >&2
+            cat "$TMP_DIR/step1_copy_${COPY_IDX}.err" >&2
         done
         if [ "$FAILED" -ne 0 ]; then
             echo "Step 1 failed (one or more copies failed)"
