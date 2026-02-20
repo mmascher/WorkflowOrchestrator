@@ -85,7 +85,8 @@
   "MaxWaitTime": 86400,
   "EventStreams": null,
   "MergedLFNBase": "/store/himc",
-  "UnmergedLFNBase": "/store/unmerged",
+  "__UnmergedLFNBase__": "/store/unmerged",
+  "UnmergedLFNBase": "/store/temp/user/mmascher.newwm/",
   "DeleteFromSource": false,
   "ChainParentageMap": {
     "Step1": {
@@ -123,7 +124,7 @@
   "FirstLumi": 1,
   "StepChain": 6,
   "Step1": {
-    "NumCopies": 4,
+    "__NumCopies__": 4,
     "KeepOutput": false,
     "ConfigCacheID": "c1dafc016fcdfe5d3492565bc0d9c05e",
     "GlobalTag": "106X_mc2017_realistic_forppRef5TeV_v3",
