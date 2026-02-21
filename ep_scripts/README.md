@@ -45,8 +45,4 @@ ep_scripts/stage_out.py --lfn /store/temp/user/you.abc123/destfile --local sourc
 
 ## Submit-time generators (micro_agent)
 
-**create_stepchain_dag.py** — Generates HTCondor DAG and submit files from event_splitter output. See [samples/htcondor/README.md](../samples/htcondor/README.md) for the DAG workflow.
-
 **create_stepchain_jdl.py** — Generates a single JDL with `Queue from seq 1 N` (1-based: job1.json … jobN.json). Runs as a standalone script before job submission (no WMCore dependency). Derives num_jobs, request_cpus, Memory, walltime, REQUIRED_OS from request.json (avoids listdir on Ceph). See [samples/htcondor/README.md](../samples/htcondor/README.md) for the JDL workflow.
-
-**postjob.py** — DAG POST script run after each node job completes. Placeholder for user logic. Default behavior: exits 1 on first invocation (triggers 6h DEFER retry), exits 0 on second. Receives `$JOB` (node name) as first argument. Copied to the DAG directory by `create_stepchain_dag.py`.

@@ -1,10 +1,9 @@
 # HTCondor Sample Submission
 
-Sample HTCondor JDL and wrapper script for submitting StepChain jobs. Three submission modes are provided:
+Sample HTCondor JDL and wrapper script for submitting StepChain jobs. Two submission modes are provided:
 
 1. **One job per site** (`job.jdl`) — useful for validating StepChain execution across the Grid. Iterates over sites in `sitelist.txt`.
-2. **DAG workflow** — one Condor job per event_splitter job. Run all split jobs via DAGMan, with retry-on-different-machine support.
-3. **JDL workflow (Queue N)** — Similar to DAG, but just one single JDL is provided. It seems simpler.
+2. **JDL workflow (Queue N)** — Single JDL with `Queue from seq 1 N`; one Condor job per event_splitter job. Simpler than DAGMan.
 
 ## Directory Setup
 
