@@ -39,8 +39,6 @@ Copy the necessary files into this directory:
    cp "$WO_DIR/samples/htcondor/run.sh" .
    cp "$WO_DIR/samples/htcondor/sitelist.txt" .
 
-   cp "$WO_DIR/src/python/micro_agent/postjob.py" .
-
    ```
 
 2. **event_splitter output** — place it in an `event_splitter_out/` subdirectory:
@@ -84,29 +82,6 @@ condor_submit job.jdl
 
 This queues one job per site in `sitelist.txt`. Each job transfers `execute_stepchain.sh`, `submit_env.sh`, `stage_out.py`, `WMCore.zip`, the corresponding `job$(Process).json`, and `request_psets.tar.gz` to the worker node, runs the StepChain, and transfers the output tarball back into `results/`.
 
-### DAG workflow (all event_splitter jobs)
-
-1. **Create DAG and submit file** (proxy and sitelist required):
-
-   ```bash
-   python "$WO_DIR/src/python/micro_agent/create_stepchain_dag.py" \
-     --event-splitter-dir event_splitter_out/ \
-     --proxy /tmp/x509up_u$(id -u) \
-     --sitelist sitelist.txt
-   ```
-
-   This generates `stepchain.dag`, `job.submit`, and `postjob.py` (POST script; copy from `ep_scripts/`). The script requires `event_splitter_out/` with `job1.json`, `job2.json`, ..., and `request_psets.tar.gz`.
-
-2. **Submit the DAG:**
-
-   ```bash
-   condor_submit_dag stepchain.dag
-   ```
-
-**Retry behavior:** If `run.sh` fails (e.g. CVMFS or site issues), the job is retried on a different machine (up to 3 times by default). A DAG-level RETRY adds another round if needed. Use `--max-retries` to change the job-level retry count.
-
-**POST script:** Each node runs `postjob.py` after the job completes. If it exits 1, DAGMan retries it after 6 hours (DEFER). The script is a placeholder—edit `postjob.py` to add your logic (e.g. stage-out checks).
-
 ### JDL workflow (Queue N)
 
 Single JDL with `Queue from seq 1 N`; derives num_jobs, request_cpus, Memory, walltime from request.json (avoids listdir on Ceph). Uses $(Process) for output paths.
@@ -131,4 +106,4 @@ Single JDL with `Queue from seq 1 N`; derives num_jobs, request_cpus, Memory, wa
    condor_submit stepchain.jdl
    ```
 
-**Retry behavior:** Same as DAG mode—job-level retries on different machine (default 3).
+**Retry behavior:** If `run.sh` fails (e.g. CVMFS or site issues), the job is retried on a different machine (up to 3 times by default). Use `--max-retries` to change the job-level retry count.

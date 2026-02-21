@@ -43,6 +43,4 @@ setup_python_comp
 ep_scripts/stage_out.py --lfn /store/temp/user/you.abc123/destfile --local sourcefile
 ```
 
-## Submit-time generators (micro_agent)
-
-**create_stepchain_jdl.py** — Generates a single JDL with `Queue from seq 1 N` (1-based: job1.json … jobN.json). Runs as a standalone script before job submission (no WMCore dependency). Derives num_jobs, request_cpus, Memory, walltime, REQUIRED_OS from request.json (avoids listdir on Ceph). See [samples/htcondor/README.md](../samples/htcondor/README.md) for the JDL workflow.
+For full workflow submission (all event_splitter jobs), see the [htcondor example](../samples/htcondor/README.md).
