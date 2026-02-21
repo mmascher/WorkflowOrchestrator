@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0] - 2026-02-21
+
+### Added
+
+- **create_stepchain_jdl.py**: Generates a single JDL with `Queue from seq 1 N` for submitting all event_splitter jobs. Derives num_jobs, request_cpus, Memory, walltime, and REQUIRED_OS from request.json. No WMCore dependency at submit time.
+- **NumCopies support for step 1**: Event splitter and executor support `NumCopies` for step 1; copies are handled at splitting time.
+- `cmssw_handle_condor_status_service` integration in `execute_stepchain.sh` for cmsRun job statistics.
+- Timestamps during `execute_stepchain.sh` execution for debugging.
+
+### Changed
+
+- **Removed DAG workflow**: Deleted `create_stepchain_dag.py` and `postjob.py`; single JDL submission via `create_stepchain_jdl.py` is now the only workflow for full event_splitter job sets.
+- Refactored num_copies handling: more logic at splitting time in event_splitter.
+- Do not tar root files in output tarball; only non-root outputs are transferred back.
+- Improved cleanup and error handling in `execute_stepchain.sh`.
+- Do not overwrite outputs, logs, and errs on retries (uses `$(Process)` in paths).
+- Derive REQUIRED_OS from SCRAM_ARCH in `create_stepchain_jdl.py`.
+- Updated HTCondor README to remove DAG references and align with current workflow.
+
+### Fixed
+
+- Fixed messed up stdout and stderr when numcopies is used.
+- Fixed wrong Queue statement in `create_stepchain_jdl.py`.
+- Check SITECONF after setting up the environment in `execute_stepchain.sh`.
+- tar no longer verbose in `run.sh`.
+
 ## [0.2.0] - 2026-02-10
 
 ### Added
@@ -43,6 +69,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - event_splitter requires WMCore on `PYTHONPATH` (e.g. `../WMCore/src/python`).
 - `execute_stepchain.sh` requires `edm_pset_pickler.py`, `edm_pset_tweak.py`, `cmssw_handle_nEvents.py` on PATH (e.g. from cmssw-wm-tools) and a CMS/SCRAM environment (e.g.: the cmssw-el7 for the `SMP-RunIISummer20UL17pp5TeVwmLHEGS` example in the repo).
 
+[0.3.0]: https://github.com/dmwm/WorkflowOrchestrator/releases/tag/v0.3.0
 [0.2.0]: https://github.com/dmwm/WorkflowOrchestrator/releases/tag/v0.2.0
 [0.1.1]: https://github.com/dmwm/WorkflowOrchestrator/releases/tag/v0.1.1
 [0.1.0]: https://github.com/dmwm/WorkflowOrchestrator/releases/tag/v0.1.0
