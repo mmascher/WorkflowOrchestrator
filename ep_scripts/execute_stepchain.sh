@@ -104,6 +104,13 @@ run_step_in_cms_env() {
         exit $EXIT_CFG_GEN
     }
 
+    if [ -n "${_CONDOR_JOB_AD:-}" ] && [ -f "$_CONDOR_JOB_AD" ]; then
+        cmssw_handle_condor_status_service.py --input_pkl "Pset.pkl" --output_pkl "Pset.pkl" --name "cmsRun${STEP_NUM}${COPY_IDX:+_$COPY_IDX}" || {
+            echo "cmssw_handle_condor_status_service failed for step $STEP_NUM${COPY_IDX:+ copy $COPY_IDX}"
+            exit $EXIT_CFG_GEN
+        }
+    fi
+
     cat > Pset_cmsRun.py << 'WRAPPER'
 import pickle
 with open('Pset.pkl', 'rb') as f:
