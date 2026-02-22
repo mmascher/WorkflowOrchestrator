@@ -52,7 +52,7 @@ parse_and_validate_args() {
 # Print current environment, one variable per line, each prefixed with ---ENV--- 
 print_env() {
     env | sort | while IFS= read -r line; do
-        echo "---ENV--- $line"
+        echo "---ENV--- $line" >&2
     done
 }
 
@@ -60,7 +60,7 @@ print_env() {
 print_condor_job_ad() {
     if [ -n "${_CONDOR_JOB_AD:-}" ] && [ -f "$_CONDOR_JOB_AD" ]; then
         while IFS= read -r line; do
-            echo "---JOB_AD--- $line"
+            echo "---JOB_AD--- $line" >&2
         done < "$_CONDOR_JOB_AD"
     fi
 }
@@ -69,7 +69,7 @@ print_condor_job_ad() {
 print_condor_machine_ad() {
     if [ -n "${_CONDOR_MACHINE_AD:-}" ] && [ -f "$_CONDOR_MACHINE_AD" ]; then
         while IFS= read -r line; do
-            echo "---MACHINE_AD--- $line"
+            echo "---MACHINE_AD--- $line" >&2
         done < "$_CONDOR_MACHINE_AD"
     fi
 }
