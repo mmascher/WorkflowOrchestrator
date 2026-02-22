@@ -8,27 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **create_stepchain_jdl.py**: Generates a single JDL with `Queue from seq 1 N` for submitting all event_splitter jobs. Derives num_jobs, request_cpus, Memory, walltime, and REQUIRED_OS from request.json. No WMCore dependency at submit time.
-- **NumCopies support for step 1**: Event splitter and executor support `NumCopies` for step 1; copies are handled at splitting time.
-- `cmssw_handle_condor_status_service` integration in `execute_stepchain.sh` for cmsRun job statistics.
-- Timestamps during `execute_stepchain.sh` execution for debugging.
+- **NumCopies for step 1**: Event splitter and executor support `NumCopies` for the first (often GEN-SIM) step; copies are handled at splitting time and run in parallel, significantly improving CPU utilization and reducing job wall time.
+- **create_stepchain_jdl.py**: Single JDL for all event_splitter jobs; derives num_jobs, cpus, memory, walltime, REQUIRED_OS from request.json.
+- cmsRun job statistics via `cmssw_handle_condor_status_service` in `execute_stepchain.sh`.
+- Debug output: timestamps, env, HTCondor ads, and `[stage_out]`-prefixed stageout messages.
 
 ### Changed
 
-- **Removed DAG workflow**: Deleted `create_stepchain_dag.py` and `postjob.py`; single JDL submission via `create_stepchain_jdl.py` is now the only workflow for full event_splitter job sets.
-- Refactored num_copies handling: more logic at splitting time in event_splitter.
-- Do not tar root files in output tarball; only non-root outputs are transferred back.
-- Improved cleanup and error handling in `execute_stepchain.sh`.
-- Do not overwrite outputs, logs, and errs on retries (uses `$(Process)` in paths).
-- Derive REQUIRED_OS from SCRAM_ARCH in `create_stepchain_jdl.py`.
-- Updated HTCondor README to remove DAG references and align with current workflow.
+- **DAG removed**: Single JDL submission only; `create_stepchain_dag.py` and `postjob.py` removed.
+- Refactored num_copies handling; no root files in output tarball; improved cleanup and error handling.
+- Retries use `$(Process)` in paths; REQUIRED_OS from SCRAM_ARCH; READMEs simplified.
 
 ### Fixed
 
-- Fixed messed up stdout and stderr when numcopies is used.
-- Fixed wrong Queue statement in `create_stepchain_jdl.py`.
-- Check SITECONF after setting up the environment in `execute_stepchain.sh`.
-- tar no longer verbose in `run.sh`.
+- stdout/stderr with numcopies; Queue statement in JDL; SITECONF check; tar verbosity in `run.sh`.
+- added pset tweak for multicore: everything was single core by default without it
 
 ## [0.2.0] - 2026-02-10
 
