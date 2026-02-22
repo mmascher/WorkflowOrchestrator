@@ -9,14 +9,13 @@ Either pass explicit file pairs (--lfn / --local) or discover from a stepchain r
 """
 import argparse
 import json
-import logging
+# import logging
 import os
 import sys
 
+# logging.basicConfig(level=logging.INFO)
 # WMCore Storage (add src/python to PYTHONPATH)
 from WMCore.Storage.StageOutMgr import StageOutMgr
-
-logging.basicConfig(level=logging.INFO)
 
 
 def discover_files_from_request(request_path, work_dir):
@@ -100,14 +99,14 @@ def stageout_files(file_list, retries=3, retry_pause=600):
             # Call manager - it will try each stage-out from site config until one succeeds
             result = manager(fileToStage)
             staged_files.append(result)
-            print("Staged out: %s -> %s (PNN: %s, Command: %s)" % (
+            print("[stage_out] Staged out: %s -> %s (PNN: %s, Command: %s)" % (
                 file_info['local_path'],
                 result['PFN'],
                 result['PNN'],
                 result['StageOutCommand']
             ))
         except Exception as ex:
-            print("Stage-out failed for %s: %s" % (file_info['lfn'], ex), file=sys.stderr)
+            print("[stage_out] Stage-out failed for %s: %s" % (file_info['lfn'], ex), file=sys.stderr)
             # Optionally clean up successful transfers if one fails
             manager.cleanSuccessfulStageOuts()
             raise
@@ -155,7 +154,7 @@ def main():
             ap.error("Do not use --lfn/--local with --request")
         file_list = discover_files_from_request(args.request, args.work_dir)
         if not file_list:
-            logging.info("No files to stage (no KeepOutput steps or no .root files).")
+            print("[stage_out] No files to stage (no KeepOutput steps or no .root files).")
             return
     else:
         if not args.lfn or not args.local:
