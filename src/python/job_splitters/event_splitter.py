@@ -35,12 +35,25 @@ def build_job_tweak_json(
     chain_input_files=None,
     set_output_filename=None,
     output_module_name=None,
+    num_threads=1,
 ):
     """
     Build a dict of PSet parameter key -> value string (customTypeCms.* format)
     for edm_pset_tweak.py (cmssw-wm-tools). Matches WMCore PSetTweaks/WMTweak.makeJobTweak logic.
+
+    num_threads: number of threads for cmsRun (process.options.numberOfThreads).
+    When step1 has numCopies > 1, each copy uses 1 thread (parallel processes).
+    Otherwise use job CPUs (e.g. req["Multicore"]) so cmsRun uses all cores.
     """
     tweak = {}
+
+    # CPU/threads tweak (matches WMCore SetupCMSSWPset.makeThreadsStreamsTweak)
+    tweak["process.options"] = "customTypeCms.untracked.PSet()"
+    tweak["process.options.numberOfThreads"] = (
+        "customTypeCms.untracked.uint32(%s)" % num_threads
+    )
+    # numberOfStreams: 0 = use CMSSW default (matches WMCore when eventStreams not set)
+    tweak["process.options.numberOfStreams"] = "customTypeCms.untracked.uint32(0)"
 
     first_lumi = mask.get("FirstLumi")
     if first_lumi is not None:
@@ -243,6 +256,7 @@ def generate_eventbased_jobs(request_json_path, splitting_json_path):
     # Output: job_index + tweaks only (no mask; worker uses precomputed tweaks).
     num_steps = req.get("StepChain", 1)
     step1_num_copies = req.get("Step1", {}).get("NumCopies", 1)
+    job_cpus = max(1, int(req.get("Multicore", 1)))
     jobs_out = []
     job_id = 1
     for group in job_groups:
@@ -303,6 +317,7 @@ def generate_eventbased_jobs(request_json_path, splitting_json_path):
                             chain_input_files=None,
                             set_output_filename=set_output_filename,
                             output_module_name=output_module_name,
+                            num_threads=1,  # each copy runs as separate process, 1 thread per copy
                         )
                         step1_tweaks.append(copy_tweak)
                     tweaks[str(step_num)] = step1_tweaks
@@ -314,6 +329,7 @@ def generate_eventbased_jobs(request_json_path, splitting_json_path):
                         chain_input_files=chain_input_files,
                         set_output_filename=set_output_filename,
                         output_module_name=output_module_name,
+                        num_threads=job_cpus,  # single cmsRun per step, use all job CPUs
                     )
             jobs_out.append({"job_index": job_id, "tweaks": tweaks})
             job_id += 1
