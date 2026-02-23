@@ -106,7 +106,7 @@ Job efficiency = (RemoteUserCpu + RemoteSysCpu) / (CommittedTime × 4).
 | cmsRun5 | 70         | 203          | ~0.72                                     |
 | cmsRun6 | 35         | 93           | ~0.67                                     |
 
-**Result:** Using `numcopies=4` for Step 1 reduces total job wall time by **~49%** (from ~7.9 h to ~4.0 h). With the fixed `numberOfThreads` tweak, the 1-copy job now achieves **~51%** Step 1 CPU efficiency (matching the original WMCore production job), while 4 copies reach **~94%**. The GEN-SIM step benefits from parallel execution across multiple processes, improving overall CPU utilization and shortening the dominant phase of the workflow.
+**Result:** Using `numcopies=4` for Step 1 reduces total job wall time by **~49%** (from ~7.9 h to ~4.0 h). The 1-copy job achieves **~51%** Step 1 CPU efficiency (matching the original WMCore production job), while 4 copies reach **~94%**. The GEN-SIM step benefits from parallel execution across multiple processes, improving overall CPU utilization and shortening the dominant phase of the workflow.
 
 ---
 
