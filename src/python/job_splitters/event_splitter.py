@@ -48,7 +48,6 @@ def build_job_tweak_json(
     tweak = {}
 
     # CPU/threads tweak (matches WMCore SetupCMSSWPset.makeThreadsStreamsTweak)
-    tweak["process.options"] = "customTypeCms.untracked.PSet()"
     tweak["process.options.numberOfThreads"] = (
         "customTypeCms.untracked.uint32(%s)" % num_threads
     )
