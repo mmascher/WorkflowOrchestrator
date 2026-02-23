@@ -175,6 +175,27 @@ with open('tweak.json', 'w') as f:
 "
 }
 
+# Create aggregated job report from stepchain job_report.xml files.
+# Uses REQUEST_JSON, TMP_DIR, INITIAL_DIR from the calling script.
+run_create_report() {
+    echo "========== Create report (aggregate job_report.xml) =========="
+    CREATE_REPORT_SCRIPT="$SCRIPT_DIR/create_report.py"
+    if [ ! -f "$CREATE_REPORT_SCRIPT" ]; then
+        echo "Create report skipped: create_report.py not found at $CREATE_REPORT_SCRIPT"
+        return 0
+    fi
+    (
+    source "$SCRIPT_DIR/submit_env.sh"
+    export PYTHONPATH="$PYTHONPATH:$SCRIPT_DIR/WMCore.zip"
+    set +x # MYTEST
+    setup_cmsset
+    setup_python_comp
+    set -x # MYTEST
+    "$CREATE_REPORT_SCRIPT" --work-dir "$TMP_DIR" --request "$REQUEST_JSON" --output "$INITIAL_DIR/job_report.json" || true
+    )
+    echo "Create report completed (or skipped on error)."
+}
+
 # Stage-out: transfer output files for steps with KeepOutput=true via stage_out.py
 # Uses REQUEST_JSON and TMP_DIR from the calling script.
 run_stageout() {
@@ -312,6 +333,7 @@ done
 
 echo "All steps completed successfully."
 
+run_create_report
 run_stageout
 
 echo "execute_stepchain.sh completed successfully."
