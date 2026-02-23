@@ -45,8 +45,8 @@ parse_and_validate_args() {
         exit $EXIT_MISSING_INPUT
     fi
 
-    # This is where stage_out, submit_env and other scripts live
-    SCRIPT_DIR="$(cd "$(dirname "$TARBALL_PATH")" && pwd)"
+    # This is where stage_out, submit_env and other scripts live (same dir as this script)
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 }
 
 # Print current environment, one variable per line, each prefixed with ---ENV--- 
@@ -112,6 +112,7 @@ run_step_in_cms_env() {
     fi
 
     cat > Pset_cmsRun.py << 'WRAPPER'
+import FWCore.ParameterSet.Config as cms # WMCore do this, let's do it too
 import pickle
 with open('Pset.pkl', 'rb') as f:
     process = pickle.load(f)
