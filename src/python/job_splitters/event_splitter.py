@@ -36,6 +36,7 @@ def build_job_tweak_json(
     set_output_filename=None,
     output_module_name=None,
     num_threads=1,
+    event_streams=0,
 ):
     """
     Build a dict of PSet parameter key -> value string (customTypeCms.* format)
@@ -44,6 +45,7 @@ def build_job_tweak_json(
     num_threads: number of threads for cmsRun (process.options.numberOfThreads).
     When step1 has numCopies > 1, each copy uses 1 thread (parallel processes).
     Otherwise use job CPUs (e.g. req["Multicore"]) so cmsRun uses all cores.
+    event_streams: numberOfStreams for cmsRun (0 = use CMSSW default). From request.json EventStreams.
     """
     tweak = {}
 
@@ -52,7 +54,9 @@ def build_job_tweak_json(
         "customTypeCms.untracked.uint32(%s)" % num_threads
     )
     # numberOfStreams: 0 = use CMSSW default (matches WMCore when eventStreams not set)
-    tweak["process.options.numberOfStreams"] = "customTypeCms.untracked.uint32(0)"
+    tweak["process.options.numberOfStreams"] = (
+        "customTypeCms.untracked.uint32(%s)" % int(event_streams)
+    )
 
     first_lumi = mask.get("FirstLumi")
     if first_lumi is not None:
@@ -273,6 +277,14 @@ def generate_eventbased_jobs(request_json_path, splitting_json_path):
             }
             tweaks = {}
             for step_num in range(1, num_steps + 1):
+                step_key_cur = "Step%d" % step_num
+                step_config = req.get(step_key_cur, {})
+                # Per-step EventStreams overrides workload-level (matches WMCore StepChain)
+                event_streams = step_config.get("EventStreams")
+                if event_streams is None:
+                    event_streams = req.get("EventStreams", 0)
+                event_streams = int(event_streams) if event_streams is not None else 0
+
                 next_step_key = "Step%d" % (step_num + 1)
                 set_output_filename = None
                 output_module_name = None
@@ -284,8 +296,7 @@ def generate_eventbased_jobs(request_json_path, splitting_json_path):
                 chain_input_file = None
                 chain_input_files = None
                 if step_num > 1:
-                    step_key = "Step%d" % step_num
-                    prev_output_module = req.get(step_key, {}).get("InputFromOutputModule", "RAWSIMoutput")
+                    prev_output_module = step_config.get("InputFromOutputModule", "RAWSIMoutput")
                     if step_num == 2 and step1_num_copies > 1:
                         chain_input_files = [
                             "file:../step1/copy%d/%s.root" % (i, prev_output_module)
@@ -317,6 +328,7 @@ def generate_eventbased_jobs(request_json_path, splitting_json_path):
                             set_output_filename=set_output_filename,
                             output_module_name=output_module_name,
                             num_threads=1,  # each copy runs as separate process, 1 thread per copy
+                            event_streams=event_streams,
                         )
                         step1_tweaks.append(copy_tweak)
                     tweaks[str(step_num)] = step1_tweaks
@@ -329,6 +341,7 @@ def generate_eventbased_jobs(request_json_path, splitting_json_path):
                         set_output_filename=set_output_filename,
                         output_module_name=output_module_name,
                         num_threads=job_cpus,  # single cmsRun per step, use all job CPUs
+                        event_streams=event_streams,
                     )
             jobs_out.append({"job_index": job_id, "tweaks": tweaks})
             job_id += 1
