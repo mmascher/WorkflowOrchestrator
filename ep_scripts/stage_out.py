@@ -87,9 +87,14 @@ def stageout_files(file_list, retries=3, retry_pause=600):
     staged_files = []
     for file_info in file_list:
         # Prepare file dict (PFN is local path; StageOutMgr will update it to destination PFN)
+        local_path = file_info['local_path'].replace('file:', '')
+        file_size = os.path.getsize(local_path) if os.path.isfile(local_path) else 0
+        size_mb = file_size / (1024 * 1024)
+        print("Staging out: %s (%.2f MB)" % (file_info['lfn'], size_mb))
+
         fileToStage = {
             'LFN': file_info['lfn'],
-            'PFN': file_info['local_path'].replace('file:', ''),  # Remove file: prefix if present
+            'PFN': local_path,
             'PNN': None,
             'StageOutCommand': None,
             'Checksums': file_info.get('checksums'),

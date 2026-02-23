@@ -143,6 +143,11 @@ WRAPPER
         echo "Job report indicates cmsRun failure for step $STEP_NUM (FrameworkError or Status=Failed)"
         exit $EXIT_CMSRUN_UNKNOWN
     fi
+
+    # Print output file size(s) after cmsRun
+    if compgen -G "*.root" >/dev/null 2>&1; then
+        echo "[execute_stepchain] Output size: $(du -ch *.root 2>/dev/null | tail -1 | cut -f1)"
+    fi
     )
 }
 
