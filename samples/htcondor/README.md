@@ -33,6 +33,7 @@ Copy the necessary files into this directory:
    cp "$WO_DIR/ep_scripts/execute_stepchain.sh" .
    cp "$WO_DIR/ep_scripts/submit_env.sh" .
    cp "$WO_DIR/ep_scripts/stage_out.py" .
+   cp "$WO_DIR/ep_scripts/create_report.py" .
    cp "$WO_DIR/samples/htcondor/WMCore.zip" .
 
    cp "$WO_DIR/samples/htcondor/job.jdl" .
