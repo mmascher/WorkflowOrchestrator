@@ -31,17 +31,17 @@ EXIT_STAGEOUT=60324          # Other stageout exception
 # Parse argv and validate; sets TARBALL_PATH and JOB_FILE (absolute), exits on error.
 parse_and_validate_args() {
     if [ "$#" -ne 2 ]; then
-        echo "Usage: $(basename "$0") <request_psets.tar.gz> <job_N.json>"
+        echo "[execute_stepchain] Usage: $(basename "$0") <request_psets.tar.gz> <job_N.json>"
         exit $EXIT_INVALID_ARGS
     fi
     TARBALL_PATH=$(resolve_abs "$1")
     JOB_FILE=$(resolve_abs "$2")
     if [ ! -f "$TARBALL_PATH" ]; then
-        echo "Error: tarball not found: $TARBALL_PATH"
+        echo "[execute_stepchain] Error: tarball not found: $TARBALL_PATH"
         exit $EXIT_MISSING_INPUT
     fi
     if [ ! -f "$JOB_FILE" ]; then
-        echo "Error: job file not found: $JOB_FILE"
+        echo "[execute_stepchain] Error: job file not found: $JOB_FILE"
         exit $EXIT_MISSING_INPUT
     fi
 
@@ -52,7 +52,7 @@ parse_and_validate_args() {
 # Print current environment, one variable per line, each prefixed with ---ENV--- 
 print_env() {
     env | sort | while IFS= read -r line; do
-        echo "---ENV--- $line" >&2
+        echo "[execute_stepchain] ---ENV--- $line" >&2
     done
 }
 
@@ -60,7 +60,7 @@ print_env() {
 print_condor_job_ad() {
     if [ -n "${_CONDOR_JOB_AD:-}" ] && [ -f "$_CONDOR_JOB_AD" ]; then
         while IFS= read -r line; do
-            echo "---JOB_AD--- $line" >&2
+            echo "[execute_stepchain] ---JOB_AD--- $line" >&2
         done < "$_CONDOR_JOB_AD"
     fi
 }
@@ -69,7 +69,7 @@ print_condor_job_ad() {
 print_condor_machine_ad() {
     if [ -n "${_CONDOR_MACHINE_AD:-}" ] && [ -f "$_CONDOR_MACHINE_AD" ]; then
         while IFS= read -r line; do
-            echo "---MACHINE_AD--- $line" >&2
+            echo "[execute_stepchain] ---MACHINE_AD--- $line" >&2
         done < "$_CONDOR_MACHINE_AD"
     fi
 }
@@ -81,7 +81,7 @@ run_step_in_cms_env() {
     source "$SCRIPT_DIR/submit_env.sh"
     setup_cmsset
     export SCRAM_ARCH
-    scram project "$CMSSW_VERSION" || { echo "scram project failed"; exit $EXIT_SCRAM; }
+    scram project "$CMSSW_VERSION" || { echo "[execute_stepchain] scram project failed"; exit $EXIT_SCRAM; }
     cd "$CMSSW_VERSION"
     set +x # MYTEST
     eval $(scram runtime -sh)
@@ -89,7 +89,7 @@ run_step_in_cms_env() {
     cd ..
 
     edm_pset_pickler.py --input "PSet_base.py" --output_pkl "Pset.pkl" || {
-        echo "edm_pset_pickler failed for step $STEP_NUM"
+        echo "[execute_stepchain] edm_pset_pickler failed for step $STEP_NUM"
         exit $EXIT_CFG_GEN
     }
 
@@ -97,16 +97,16 @@ run_step_in_cms_env() {
         --input_pkl "Pset.pkl" \
         --output_pkl "Pset.pkl" \
         --json "tweak.json" \
-        --create_untracked_psets || { echo "edm_pset_tweak failed"; exit $EXIT_CFG_GEN; }
+        --create_untracked_psets || { echo "[execute_stepchain] edm_pset_tweak failed"; exit $EXIT_CFG_GEN; }
 
     cmssw_handle_nEvents.py --input_pkl "Pset.pkl" --output_pkl "Pset.pkl" || {
-        echo "cmssw_handle_nEvents failed for step $STEP_NUM"
+        echo "[execute_stepchain] cmssw_handle_nEvents failed for step $STEP_NUM"
         exit $EXIT_CFG_GEN
     }
 
     if [ -n "${_CONDOR_JOB_AD:-}" ] && [ -f "$_CONDOR_JOB_AD" ]; then
         cmssw_handle_condor_status_service.py --input_pkl "Pset.pkl" --output_pkl "Pset.pkl" --name "cmsRun${STEP_NUM}${COPY_IDX:+_$COPY_IDX}" || {
-            echo "cmssw_handle_condor_status_service failed for step $STEP_NUM${COPY_IDX:+ copy $COPY_IDX}"
+            echo "[execute_stepchain] cmssw_handle_condor_status_service failed for step $STEP_NUM${COPY_IDX:+ copy $COPY_IDX}"
             exit $EXIT_CFG_GEN
         }
     fi
@@ -119,7 +119,7 @@ with open('Pset.pkl', 'rb') as f:
 WRAPPER
 
     export FRONTIER_LOG_LEVEL=warning
-    echo "Executing cmsRun -j job_report.xml Pset_cmsRun.py"
+    echo "[execute_stepchain] Executing cmsRun -j job_report.xml Pset_cmsRun.py"
 #    mkdir -p "$CMSSW_BASE/SITECONF/local/JobConfig" # MYTEST
 #    cp /home/marco/development/results/WMCore/manual_test/site-local-config.xml "$CMSSW_BASE/SITECONF/local/JobConfig/site-local-config.xml" # MYTEST
 #    unset FRONTIER_PROXY # MYTEST
@@ -129,7 +129,7 @@ WRAPPER
     cmsRun -j job_report.xml Pset_cmsRun.py
     CMSRUN_EXIT=$?
     if [ "$CMSRUN_EXIT" -ne 0 ]; then
-        echo "cmsRun failed for step $STEP_NUM (exit code $CMSRUN_EXIT)"
+        echo "[execute_stepchain] cmsRun failed for step $STEP_NUM (exit code $CMSRUN_EXIT)"
         exit $CMSRUN_EXIT
     fi
     # cmsRun can exit 0 despite failures - check job report (FrameworkJobReport)
@@ -137,10 +137,10 @@ WRAPPER
         # Try to extract ExitStatus from FrameworkError to use as exit code
         REPORT_EXIT=$(grep -oE 'ExitStatus="[0-9]+"' job_report.xml 2>/dev/null | head -1 | grep -oE '[0-9]+')
         if [ -n "$REPORT_EXIT" ]; then
-            echo "Job report indicates cmsRun failure for step $STEP_NUM (ExitStatus=$REPORT_EXIT)"
+            echo "[execute_stepchain] Job report indicates cmsRun failure for step $STEP_NUM (ExitStatus=$REPORT_EXIT)"
             exit $REPORT_EXIT
         fi
-        echo "Job report indicates cmsRun failure for step $STEP_NUM (FrameworkError or Status=Failed)"
+        echo "[execute_stepchain] Job report indicates cmsRun failure for step $STEP_NUM (FrameworkError or Status=Failed)"
         exit $EXIT_CMSRUN_UNKNOWN
     fi
 
@@ -172,7 +172,7 @@ if copy_idx != '':
 else:
     sk = str(step_num)
     if 'tweaks' not in job or sk not in job['tweaks']:
-        print('Precomputed tweak for step %s not found' % step_num, file=sys.stderr)
+        print('[execute_stepchain] Precomputed tweak for step %s not found' % step_num, file=sys.stderr)
         sys.exit(1)
     tweak = job['tweaks'][sk]
 with open('tweak.json', 'w') as f:
@@ -183,10 +183,10 @@ with open('tweak.json', 'w') as f:
 # Create aggregated job report from stepchain job_report.xml files.
 # Uses REQUEST_JSON, TMP_DIR, INITIAL_DIR from the calling script.
 run_create_report() {
-    echo "========== Create report (aggregate job_report.xml) =========="
+    echo "[execute_stepchain] ========== Create report (aggregate job_report.xml) =========="
     CREATE_REPORT_SCRIPT="$SCRIPT_DIR/create_report.py"
     if [ ! -f "$CREATE_REPORT_SCRIPT" ]; then
-        echo "Create report skipped: create_report.py not found at $CREATE_REPORT_SCRIPT"
+        echo "[execute_stepchain] Create report skipped: create_report.py not found at $CREATE_REPORT_SCRIPT"
         return 0
     fi
     (
@@ -198,16 +198,16 @@ run_create_report() {
     set -x # MYTEST
     "$CREATE_REPORT_SCRIPT" --work-dir "$TMP_DIR" --request "$REQUEST_JSON" --output "$INITIAL_DIR/job_report.json" || true
     )
-    echo "Create report completed (or skipped on error)."
+    echo "[execute_stepchain] Create report completed (or skipped on error)."
 }
 
 # Stage-out: transfer output files for steps with KeepOutput=true via stage_out.py
 # Uses REQUEST_JSON and TMP_DIR from the calling script.
 run_stageout() {
-    echo "========== Stage-out (steps with KeepOutput=true) =========="
+    echo "[execute_stepchain] ========== Stage-out (steps with KeepOutput=true) =========="
     STAGEOUT_SCRIPT="$SCRIPT_DIR/stage_out.py"
     if [ ! -f "$STAGEOUT_SCRIPT" ]; then
-        echo "Stage-out skipped: stage_out.py not found at $STAGEOUT_SCRIPT"
+        echo "[execute_stepchain] Stage-out skipped: stage_out.py not found at $STAGEOUT_SCRIPT"
         return 0
     fi
     (
@@ -220,38 +220,38 @@ run_stageout() {
     setup_python_comp
     set -x # MYTEST
     if [ -z "${SITECONFIG_PATH:-}" ] && [ -z "${WMAGENT_SITE_CONFIG_OVERRIDE:-}" ]; then
-        echo "Stage-out skipped (SITECONFIG_PATH not set)."
+        echo "[execute_stepchain] Stage-out skipped (SITECONFIG_PATH not set)."
         return 0
     fi
-    "$STAGEOUT_SCRIPT" --request "$REQUEST_JSON" --work-dir "$TMP_DIR" || { echo "Stage-out failed"; exit $EXIT_STAGEOUT; }
+    "$STAGEOUT_SCRIPT" --request "$REQUEST_JSON" --work-dir "$TMP_DIR" || { echo "[execute_stepchain] Stage-out failed"; exit $EXIT_STAGEOUT; }
     )
     STAGEOUT_EXIT=$?
     if [ "$STAGEOUT_EXIT" -ne 0 ]; then
-        echo "Stage-out failed (exit code $STAGEOUT_EXIT)"
+        echo "[execute_stepchain] Stage-out failed (exit code $STAGEOUT_EXIT)"
         exit $STAGEOUT_EXIT
     fi
-    echo "Stage-out completed."
+    echo "[execute_stepchain] Stage-out completed."
 }
 
 parse_and_validate_args "$@"
 
-echo "Starting execute_stepchain.sh: tarball=$TARBALL_PATH job=$JOB_FILE"
+echo "[execute_stepchain] Starting execute_stepchain.sh: tarball=$TARBALL_PATH job=$JOB_FILE"
 print_env
 print_condor_job_ad
 print_condor_machine_ad
 
 INITIAL_DIR=$(pwd)
 TMP_DIR=$(mktemp -d -t stepchain-XXXXXXXXXX)
-echo "Created temporary directory: $TMP_DIR"
+echo "[execute_stepchain] Created temporary directory: $TMP_DIR"
 
 # Cleanup: create output tarball (excluding *.root) and remove TMP_DIR.
 # Runs on normal exit and on SIGTERM/SIGINT so tar is created even if the process is killed.
 cleanup() {
     if [ "${CLEANUP_DONE:-0}" -eq 1 ]; then return; fi
     CLEANUP_DONE=1
-    echo "======== Exiting at $(TZ=GMT date) ========"
+    echo "[execute_stepchain] ======== Exiting at $(TZ=GMT date) ========"
     if [ -n "${TMP_DIR:-}" ] && [ -d "$TMP_DIR" ]; then
-        echo "Creating output.tgz from $TMP_DIR (excluding *.root)"
+        echo "[execute_stepchain] Creating output.tgz from $TMP_DIR (excluding *.root)"
         tar czf "$INITIAL_DIR/output.tgz" --exclude='*.root' -C "$(dirname "$TMP_DIR")" "$(basename "$TMP_DIR")" 2>/dev/null || true
         rm -rf "$TMP_DIR"
     fi
@@ -262,10 +262,10 @@ trap cleanup EXIT
 
 cd "$TMP_DIR"
 
-echo "Extracting $TARBALL_PATH"
+echo "[execute_stepchain] Extracting $TARBALL_PATH"
 tar -xzf "$TARBALL_PATH"
 if [ ! -f "request.json" ] || [ ! -d "PSets" ]; then
-    echo "Error: tarball must contain request.json and PSets/"
+    echo "[execute_stepchain] Error: tarball must contain request.json and PSets/"
     exit $EXIT_MISSING_INPUT
 fi
 
@@ -274,11 +274,11 @@ PSETS_DIR="$TMP_DIR/PSets"
 
 # Number of steps from request (runs in original env; CMS setup is in subshell below)
 NUM_STEPS=$(python3 -S -c "import json; r=json.load(open('$REQUEST_JSON')); print(r.get('StepChain', 1))")
-echo "StepChain has $NUM_STEPS steps"
+echo "[execute_stepchain] StepChain has $NUM_STEPS steps"
 
 # Run each step
 for STEP_NUM in $(seq 1 "$NUM_STEPS"); do
-    echo "========== Step $STEP_NUM =========="
+    echo "[execute_stepchain] ========== Step $STEP_NUM =========="
     STEP_KEY="Step${STEP_NUM}"
     STEP_DIR="$TMP_DIR/step${STEP_NUM}"
     mkdir -p "$STEP_DIR"
@@ -290,7 +290,7 @@ for STEP_NUM in $(seq 1 "$NUM_STEPS"); do
 
     BASE_PSET="$PSETS_DIR/PSet_cmsRun${STEP_NUM}_${STEP_NAME}.py"
     if [ ! -f "$BASE_PSET" ]; then
-        echo "Error: Base PSet not found: $BASE_PSET"
+        echo "[execute_stepchain] Error: Base PSet not found: $BASE_PSET"
         exit $EXIT_CFG_GEN
     fi
 
@@ -307,7 +307,7 @@ for STEP_NUM in $(seq 1 "$NUM_STEPS"); do
             mkdir -p "$COPY_DIR"
             export JOB_FILE SCRIPT_DIR STEP_NUM CMSSW_VERSION SCRAM_ARCH COPY_IDX
             run_step_in_dir "$COPY_DIR" || exit $EXIT_CFG_GEN
-            echo "======== copy $COPY_IDX completed at $(TZ=GMT date) ========"
+            echo "[execute_stepchain] ======== copy $COPY_IDX completed at $(TZ=GMT date) ========"
             ) > "$COPY_OUT" 2> "$COPY_ERR" &
             PIDS+=($!)
         done
@@ -316,30 +316,30 @@ for STEP_NUM in $(seq 1 "$NUM_STEPS"); do
             if ! wait "$p"; then FAILED=1; fi
         done
         for COPY_IDX in $(seq 0 $((NUM_COPIES - 1))); do
-            echo "======== Step 1 copy $COPY_IDX stdout ========"
+            echo "[execute_stepchain] ======== Step 1 copy $COPY_IDX stdout ========"
             cat "$TMP_DIR/step1_copy_${COPY_IDX}.out"
-            echo "======== Step 1 copy $COPY_IDX stderr ========" >&2
+            echo "[execute_stepchain] ======== Step 1 copy $COPY_IDX stderr ========" >&2
             cat "$TMP_DIR/step1_copy_${COPY_IDX}.err" >&2
         done
         if [ "$FAILED" -ne 0 ]; then
-            echo "Step 1 failed (one or more copies failed)"
+            echo "[execute_stepchain] Step 1 failed (one or more copies failed)"
             exit $EXIT_CFG_GEN
         fi
     else
         # Normal flow: single tweak, single cmsRun
         unset COPY_IDX
         export JOB_FILE STEP_NUM
-        run_step_in_dir "$STEP_DIR" || { echo "Step $STEP_NUM failed"; exit $EXIT_CFG_GEN; }
+        run_step_in_dir "$STEP_DIR" || { echo "[execute_stepchain] Step $STEP_NUM failed"; exit $EXIT_CFG_GEN; }
     fi
 
     cd "$TMP_DIR"
-    echo "======== Step $STEP_NUM completed at $(TZ=GMT date) ========"
+    echo "[execute_stepchain] ======== Step $STEP_NUM completed at $(TZ=GMT date) ========"
 done
 
-echo "All steps completed successfully."
+echo "[execute_stepchain] All steps completed successfully."
 
 run_create_report
 run_stageout
 
-echo "execute_stepchain.sh completed successfully."
+echo "[execute_stepchain] execute_stepchain.sh completed successfully."
 exit 0

@@ -90,7 +90,7 @@ Single JDL with `Queue from seq 1 N`; derives num_jobs, request_cpus, Memory, wa
 1. **Create JDL** (proxy, sitelist, and request.json required). Run this on the submit machine before submitting; no WMCore needed:
 
    ```bash
-   python "$WO_DIR/src/python/micro_agent/create_stepchain_jdl.py" \
+   "$WO_DIR/src/python/micro_agent/create_stepchain_jdl.py" \
      --event-splitter-dir event_splitter_out/ \
      --request "$WO_DIR/samples/cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792/request.json" \
      --proxy /tmp/x509up_u$(id -u) \
