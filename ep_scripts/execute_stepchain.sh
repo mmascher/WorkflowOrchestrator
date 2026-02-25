@@ -233,6 +233,7 @@ run_stageout() {
     echo "[execute_stepchain] Stage-out completed."
 }
 
+touch job_report.json # Avoid condor failing to transfer the report if no steps are run
 parse_and_validate_args "$@"
 
 echo "[execute_stepchain] Starting execute_stepchain.sh: tarball=$TARBALL_PATH job=$JOB_FILE"
