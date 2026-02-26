@@ -15,11 +15,14 @@ Can run in daemon mode (default) tailing the log, or --once for a single pass.
 """
 import argparse
 import json
+import logging
 import os
 import re
 import sqlite3
 import sys
 import time
+
+logger = logging.getLogger("micro_agent_monitor")
 
 
 # HTCondor user log event codes (from Job Event Log Codes)
@@ -134,7 +137,9 @@ class CondorLogParser:
     def iter_log_file(self):
         """Yield events from log file. Streams line-by-line."""
         if not self.log_path or not os.path.isfile(self.log_path):
+            logger.debug("iter_log_file: no file at %s", self.log_path)
             return
+        logger.debug("Parsing log file: %s", self.log_path)
         with open(self.log_path, "r", errors="replace") as f:
             yield from self.iter_events(f)
 
@@ -287,11 +292,15 @@ class FileDB:
         """On JOB_TERMINATED: find job_report, extract files, store in DB. Returns (ok, result)."""
         report_path = FrameworkJobReport.find(results_dir, cluster, proc)
         if not report_path:
+            logger.debug("Job %s.%s: no job_report found in %s", cluster, proc, results_dir)
             return False, "job_report not found"
+        logger.debug("Job %s.%s: found report %s", cluster, proc, report_path)
         files, err = FrameworkJobReport.extract_files(report_path)
         if err:
+            logger.debug("Job %s.%s: extract_files failed: %s", cluster, proc, err)
             return False, err
         self.insert_files(f"{cluster}.{proc}", files, job_exit_code=return_value, rse=rse)
+        logger.debug("Job %s.%s: stored %d files (exit=%s, rse=%s)", cluster, proc, len(files), return_value, rse)
         return True, len(files)
 
     def close(self):
@@ -313,12 +322,13 @@ class Monitor:
     def run_once(self):
         """Single pass over log file."""
         if not os.path.isfile(self.condor_log_file):
-            print(f"[MAM] Log file not found: {self.condor_log_file}", file=sys.stderr)
+            logger.error("Log file not found: %s", self.condor_log_file)
             return 1
 
         processed = 0
         for ev in self.parser.iter_log_file():
             event_code, cluster, proc, subproc, timestamp, message, extra = ev
+            logger.debug("Event %s (cluster=%s.%s.%s): %s", event_code, cluster, proc, subproc, message)
             if event_code == ULOG_JOB_TERMINATED:
                 return_value = int(extra.get("ReturnValue", -1))
                 rse = extra.get("JOB_Site") or extra.get("JOB_GLIDEIN_Site") or None
@@ -327,31 +337,35 @@ class Monitor:
                 )
                 if ok:
                     processed += 1
-                    print(f"[MAM] Job {cluster}.{proc} terminated (exit={return_value}): stored {result} files")
+                    logger.info("Job %s.%s terminated (exit=%s): stored %s files", cluster, proc, return_value, result)
                 else:
-                    print(f"[MAM] Job {cluster}.{proc}: {result}", file=sys.stderr)
+                    logger.warning("Job %s.%s: %s", cluster, proc, result)
 
-        print(f"[MAM] Processed {processed} terminated jobs")
+        logger.info("Processed %s terminated jobs", processed)
         return 0
 
     def run_daemon(self, poll_interval=10):
         """Poll log file and process new events. Re-reads when file grows; skips already-processed jobs."""
-        print(f"[MAM] Daemon mode: watching {self.condor_log_file}", file=sys.stderr)
+        logger.info("Daemon mode: watching %s (poll every %ss)", self.condor_log_file, poll_interval)
         last_size = 0
         processed_jobs = set()
 
         while True:
             try:
                 if not os.path.isfile(self.condor_log_file):
+                    logger.debug("Log file not yet present, sleeping %ss", poll_interval)
                     time.sleep(poll_interval)
                     continue
                 size = os.path.getsize(self.condor_log_file)
                 if size > last_size:
+                    logger.debug("Log file grew (%s -> %s bytes), re-parsing", last_size, size)
                     for ev in self.parser.iter_log_file():
                         event_code, cluster, proc, subproc, timestamp, message, extra = ev
+                        logger.debug("Event %s (cluster=%s.%s.%s): %s", event_code, cluster, proc, subproc, message)
                         if event_code == ULOG_JOB_TERMINATED:
                             key = (cluster, proc)
                             if key in processed_jobs:
+                                logger.debug("Job %s.%s already processed, skipping", cluster, proc)
                                 continue
                             processed_jobs.add(key)
                             return_value = int(extra.get("ReturnValue", -1))
@@ -360,21 +374,47 @@ class Monitor:
                                 self.results_dir, cluster, proc, return_value, rse=rse
                             )
                             if ok:
-                                print(f"[MAM] Job {cluster}.{proc}: stored {result} files")
+                                logger.info("Job %s.%s: stored %s files", cluster, proc, result)
                             else:
-                                print(f"[MAM] Job {cluster}.{proc}: {result}", file=sys.stderr)
+                                logger.warning("Job %s.%s: %s", cluster, proc, result)
                     last_size = size
                 time.sleep(poll_interval)
             except KeyboardInterrupt:
+                logger.info("Stopping daemon (interrupted)")
                 break
             except Exception as e:
-                print(f"[MAM] Error: {e}", file=sys.stderr)
+                logger.exception("Error: %s", e)
                 time.sleep(poll_interval)
 
         return 0
 
     def close(self):
         self.db.close()
+
+
+def setup_logging(log_file=None, verbose=False):
+    """
+    Configure logging. Stdout gets INFO (relevant); log file gets DEBUG (everything).
+    With --verbose, stdout also shows DEBUG.
+    """
+    logger.setLevel(logging.DEBUG)
+    logger.handlers.clear()
+
+    fmt = logging.Formatter("%(asctime)s %(levelname)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+
+    stdout = logging.StreamHandler(sys.stdout)
+    stdout.setLevel(logging.DEBUG if verbose else logging.INFO)
+    stdout.setFormatter(fmt)
+    logger.addHandler(stdout)
+
+    if log_file:
+        try:
+            fh = logging.FileHandler(log_file, encoding="utf-8")
+            fh.setLevel(logging.DEBUG)
+            fh.setFormatter(fmt)
+            logger.addHandler(fh)
+        except OSError as e:
+            logger.warning("Could not open log file %s: %s", log_file, e)
 
 
 def parse_args():
@@ -398,6 +438,17 @@ def parse_args():
         help="SQLite database path (default: micro_agent.db)",
     )
     p.add_argument(
+        "--log-file",
+        metavar="FILE",
+        help="Write log to file (DEBUG level); stdout keeps INFO",
+    )
+    p.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Show DEBUG on stdout (default: INFO only)",
+    )
+    p.add_argument(
         "--once",
         action="store_true",
         help="Single pass over log, then exit (default: daemon mode)",
@@ -413,6 +464,7 @@ def parse_args():
 
 def main():
     args = parse_args()
+    setup_logging(log_file=args.log_file, verbose=args.verbose)
 
     monitor = Monitor(args.log, args.results_dir, args.db)
     try:
