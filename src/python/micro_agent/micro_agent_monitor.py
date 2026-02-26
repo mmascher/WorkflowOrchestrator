@@ -156,8 +156,9 @@ class FrameworkJobReport:
         try:
             for name in os.listdir(results_dir):
                 if name.startswith(prefix) and name.endswith(".json"):
+                    suffix = name[len(prefix) : -len(".json")]
                     try:
-                        n = int(name[len(prefix) : -len(".json")])
+                        n = int(suffix) if suffix else 0
                         if n > best_n:
                             best_n, best_path = n, os.path.join(results_dir, name)
                     except ValueError:

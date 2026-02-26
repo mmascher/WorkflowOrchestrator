@@ -13,6 +13,7 @@ This directory contains samples and scripts for the Micro Agent workflow.
 - `run_test.sh` – Full workflow: split, create JDL, submit. Run from repo root.
 - `run_monitor.sh` – Run MAM on a work dir (log/ + results/).
 - `run.10372180` – Sample job log file (condor user log format).
+- `job_report.10409446.0..json` – Sample framework job report (cluster 10409446, proc 0).
 
 ## Micro Agent Monitor (MAM)
 
@@ -45,4 +46,10 @@ cd test_jdl && ../samples/micro_agent/run_monitor.sh .
 
 ```bash
 sqlite3 micro_agent.db "SELECT * FROM processed_files LIMIT 10;"
+```
+
+### Tests
+
+```bash
+python3 -m unittest tests.test_micro_agent_monitor -v
 ```
