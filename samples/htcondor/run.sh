@@ -1,5 +1,5 @@
-set -x
+#!/bin/bash
 
-chmod +x execute_stepchain.sh
-./execute_stepchain.sh request_psets.tar.gz job*.json
-
+./execute_stepchain.sh request_psets.tar.gz job*.json &
+PID=$!
+prmon --pid $PID --filename prmon.txt --json-summary prmon.json

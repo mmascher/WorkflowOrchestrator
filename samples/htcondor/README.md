@@ -20,7 +20,7 @@ mkdir -p log out err results
 | `log/`    | HTCondor log files |
 | `out/`    | Job stdout |
 | `err/`    | Job stderr |
-| `results/`| Transferred-back output tarballs |
+| `results/`| Transferred-back output tarballs, job reports, prmon memory profiles |
 
 ## Input Files
 
