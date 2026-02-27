@@ -15,6 +15,7 @@ from micro_agent.micro_agent_monitor import (
     CondorLogParser,
     FrameworkJobReport,
     FileDB,
+    load_keep_output_steps,
     ULOG_JOB_TERMINATED,
 )
 
@@ -80,8 +81,32 @@ class TestFrameworkJobReport(unittest.TestCase):
         self.assertIn("lfn", f)
         self.assertIn("pfn", f)
         self.assertIn("step_name", f)
-        self.assertIn("role", f)
-        self.assertIn(f["role"], ("input", "output"))
+
+
+    def test_load_keep_output_steps(self):
+        """load_keep_output_steps reads KeepOutput from request.json."""
+        request_path = os.path.join(
+            os.path.dirname(__file__), "..",
+            "samples", "cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792",
+            "request.json",
+        )
+        steps = load_keep_output_steps(request_path)
+        self.assertIsNotNone(steps)
+        self.assertIn("step4", steps)
+        self.assertIn("step5", steps)
+        self.assertIn("step6", steps)
+        self.assertNotIn("step1", steps)
+
+    def test_extract_files_keep_output_only(self):
+        """keep_output_steps filters to outputs from those steps."""
+        samples_dir = os.path.join(os.path.dirname(__file__), "..", "samples", "micro_agent")
+        path = FrameworkJobReport.find(samples_dir, 10409446, 0)
+        self.assertIsNotNone(path)
+        steps = {"step4", "step5", "step6"}
+        files, _ = FrameworkJobReport.extract_files(path, keep_output_steps=steps)
+        self.assertEqual(len(files), 3)
+        step_names = {f["step_name"] for f in files}
+        self.assertEqual(step_names, steps)
 
     def test_find_with_retries(self):
         """When multiple reports exist, pick highest NumJobCompletions."""
@@ -105,20 +130,12 @@ class TestFrameworkJobReport(unittest.TestCase):
             self.assertTrue(path.endswith("job_report.99.1..json"))
 
     def test_extract_files_minimal(self):
-        """Minimal job report with input and output."""
+        """Minimal job report: outputs only."""
         report = {
             "steps": {
                 "step1": {
-                    "input": {
-                        "source": [
-                            {"lfn": "/store/foo.root", "pfn": "root://host/store/foo.root", "events": 100}
-                        ]
-                    },
-                    "output": {
-                        "output": [
-                            {"lfn": "", "pfn": "out.root", "events": 100}
-                        ]
-                    },
+                    "input": {"source": [{"lfn": "/store/foo.root", "pfn": "root://host/store/foo.root"}]},
+                    "output": {"output": [{"lfn": "", "pfn": "out.root", "events": 100}]},
                 }
             }
         }
@@ -128,10 +145,8 @@ class TestFrameworkJobReport(unittest.TestCase):
                 tf.close()
                 files, err = FrameworkJobReport.extract_files(tf.name)
                 self.assertIsNone(err)
-                self.assertEqual(len(files), 2)
-                roles = {f["role"] for f in files}
-                self.assertIn("input", roles)
-                self.assertIn("output", roles)
+                self.assertEqual(len(files), 1)
+                self.assertEqual(files[0]["pfn"], "out.root")
             finally:
                 os.unlink(tf.name)
 
@@ -145,11 +160,11 @@ class TestFileDB(unittest.TestCase):
             try:
                 db = FileDB(tf.name)
                 files = [
-                    {"lfn": "/store/a.root", "pfn": "root://x/a.root", "step_name": "s1", "role": "input", "events": 10},
-                    {"lfn": "", "pfn": "out.root", "step_name": "s1", "role": "output", "events": 10},
+                    {"lfn": "/store/a.root", "pfn": "root://x/a.root", "step_name": "s1", "events": 10},
+                    {"lfn": "", "pfn": "out.root", "step_name": "s1", "events": 10},
                 ]
                 db.insert_files("10409446.0", files)
-                cur = db.conn.execute("SELECT lfn, pfn, role FROM processed_files")
+                cur = db.conn.execute("SELECT lfn, pfn FROM processed_files")
                 rows = cur.fetchall()
                 self.assertEqual(len(rows), 2)
                 db.close()

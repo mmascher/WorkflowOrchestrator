@@ -37,6 +37,9 @@ cd test_jdl
 PYTHONPATH=/path/to/WorkflowOrchestrator/src/python python -m micro_agent.micro_agent_monitor \
   --log log/run.10372180 --results-dir results --db micro_agent.db
 
+# With request.json: only outputs from steps with KeepOutput==True
+python -m micro_agent.micro_agent_monitor --log ... --request request.json --once
+
 # Logging: save to file (DEBUG) and/or verbose stdout
 python -m micro_agent.micro_agent_monitor --log ... --log-file micro_agent.log
 python -m micro_agent.micro_agent_monitor --log ... -v   # DEBUG on stdout
@@ -44,7 +47,9 @@ python -m micro_agent.micro_agent_monitor --log ... -v   # DEBUG on stdout
 
 ### SQLite Schema
 
-- **processed_files**: condor_job_id, lfn, pfn, step_name, role (input/output), events, size, rse (storage site), job_exit_code, etc.
+- **processed_files**: condor_job_id, lfn, pfn, step_name, events, size, rse (storage site), job_exit_code, etc.
+
+MAM stores only output files (no inputs). With `--request request.json`, only outputs from steps with `KeepOutput==True` are stored.
 
 ### Query
 
