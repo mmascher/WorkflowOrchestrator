@@ -61,6 +61,9 @@ def parse_report(xml_path):
 
     Returns dict with step data (input, output, performance, errors, etc.) or None on error.
     """
+    # Import here (not at top): WMCore is optional/env-specific (PYTHONPATH/WMCore.zip).
+    # Lazy import lets the script run --help, discover paths, and handle "no reports" without
+    # WMCore; we only fail when actually parsing a report.
     try:
         from WMCore.FwkJobReport.Report import Report
     except ImportError as e:
@@ -102,6 +105,36 @@ def get_step_events(step_data):
     for src in step_data["input"]["source"]:
         total += int(src.get("events", 0) or src.get("EventsRead", 0) or 0)
     return total
+
+
+def load_stage_out_results(work_dir):
+    """Load stage_out_results.json if present. Returns dict LFN -> {pfn, pnn} or None."""
+    path = os.path.join(work_dir, "stage_out_results.json")
+    if not os.path.isfile(path):
+        return None
+    try:
+        with open(path) as f:
+            data = json.load(f)
+        return {s["lfn"]: {"pfn": s.get("pfn"), "pnn": s.get("pnn")} for s in data.get("staged", [])}
+    except (json.JSONDecodeError, OSError, KeyError) as e:
+        print("[create_report] Failed to read stage_out_results.json: %s" % e, file=sys.stderr)
+        return None
+
+
+def merge_stage_out_into_report(report, staged_by_lfn):
+    """Merge staged pfn/pnn into output file records. Match by LFN."""
+    if not staged_by_lfn:
+        return
+    for step_data in report.get("steps", {}).values():
+        if not step_data or "output" not in step_data:
+            continue
+        for file_list in step_data["output"].values():
+            for fi in file_list if isinstance(file_list, list) else []:
+                lfn = fi.get("lfn") or fi.get("LFN") or fi.get("logicalFileName") or ""
+                if lfn and lfn in staged_by_lfn:
+                    s = staged_by_lfn[lfn]
+                    fi["pfn"] = s.get("pfn") or fi.get("pfn")
+                    fi["pnn"] = s.get("pnn")
 
 
 def main():
@@ -178,6 +211,12 @@ def main():
             "stepsRun": steps_run,
         },
     }
+
+    staged_by_lfn = load_stage_out_results(work_dir)
+    if staged_by_lfn is not None:
+        merge_stage_out_into_report(report, staged_by_lfn)
+    else:
+        print("[create_report] No stage_out_results.json (stage-out failed or skipped).", file=sys.stderr)
 
     with open(output_path, "w") as f:
         json.dump(report, f, indent=2)

@@ -117,6 +117,18 @@ def stageout_files(file_list, retries=3, retry_pause=600):
     return staged_files
 
 
+def write_stage_out_results(staged, work_dir):
+    """Write stage-out results to work_dir/stage_out_results.json for create_report to merge."""
+    results_path = os.path.join(work_dir, "stage_out_results.json")
+    with open(results_path, "w") as f:
+        json.dump(
+            {"staged": [{"lfn": r["LFN"], "pfn": r["PFN"], "pnn": r.get("PNN")} for r in staged]},
+            f,
+            indent=2,
+        )
+    print("[stage_out] Wrote %s" % results_path)
+
+
 def main():
     ap = argparse.ArgumentParser(
         description="Stage out files using WMCore StageOutMgr (requires SITECONFIG_PATH)"
@@ -174,7 +186,10 @@ def main():
     ):
         ap.error("SITECONFIG_PATH or WMAGENT_SITE_CONFIG_OVERRIDE must be set")
 
-    stageout_files(file_list, retries=args.retries, retry_pause=args.retry_pause)
+    staged = stageout_files(file_list, retries=args.retries, retry_pause=args.retry_pause)
+
+    if args.work_dir:
+        write_stage_out_results(staged, args.work_dir)
 
 
 if __name__ == "__main__":

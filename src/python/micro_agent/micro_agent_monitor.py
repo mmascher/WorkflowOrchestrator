@@ -241,12 +241,14 @@ class FrameworkJobReport:
                 for fi in file_list if isinstance(file_list, list) else []:
                     lfn = fi.get("lfn") or fi.get("LFN") or fi.get("logicalFileName")
                     pfn = fi.get("pfn") or fi.get("PFN") or fi.get("fileName") or fi.get("physicalFileName")
+                    pnn = fi.get("pnn") or fi.get("PNN")
                     events = fi.get("events") or fi.get("EventsWritten")
                     size = fi.get("size")
                     if lfn or pfn:
                         files.append({
                             "lfn": lfn or "",
                             "pfn": pfn or "",
+                            "pnn": pnn or "",
                             "step_name": step_name,
                             "events": int(events) if events is not None else None,
                             "size": int(size) if size is not None else None,
@@ -278,7 +280,8 @@ class FileDB:
                 events INTEGER,
                 size INTEGER,
                 module_label TEXT,
-                rse TEXT,
+                glidein_cmssite TEXT,
+                pnn TEXT,
                 job_exit_code INTEGER,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(condor_job_id, lfn, pfn, step_name)
@@ -286,18 +289,23 @@ class FileDB:
 
             CREATE INDEX IF NOT EXISTS idx_files_lfn ON processed_files(lfn);
             CREATE INDEX IF NOT EXISTS idx_files_job ON processed_files(condor_job_id);
-            CREATE INDEX IF NOT EXISTS idx_files_rse ON processed_files(rse);
+            CREATE INDEX IF NOT EXISTS idx_files_pnn ON processed_files(pnn);
         """)
+        for col in ("glidein_cmssite", "pnn"):
+            try:
+                self.conn.execute("ALTER TABLE processed_files ADD COLUMN %s TEXT" % col)
+            except sqlite3.OperationalError:
+                pass
         self.conn.commit()
 
-    def insert_files(self, condor_job_id, files, job_exit_code=0, rse=None):
+    def insert_files(self, condor_job_id, files, job_exit_code=0, glidein_cmssite=None):
         """Insert file records, ignoring duplicates (UNIQUE constraint)."""
         for f in files:
             try:
                 self.conn.execute(
                     """INSERT OR IGNORE INTO processed_files
-                       (condor_job_id, lfn, pfn, step_name, events, size, module_label, rse, job_exit_code)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                       (condor_job_id, lfn, pfn, step_name, events, size, module_label, glidein_cmssite, pnn, job_exit_code)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
                         condor_job_id,
                         f.get("lfn") or "",
@@ -306,7 +314,8 @@ class FileDB:
                         f.get("events"),
                         f.get("size"),
                         f.get("module_label") or "",
-                        rse or "",
+                        glidein_cmssite or "",
+                        f.get("pnn") or "",
                         job_exit_code,
                     ),
                 )
@@ -315,7 +324,7 @@ class FileDB:
         self.conn.commit()
 
     def process_terminated_job(
-        self, results_dir, cluster, proc, return_value, rse=None,
+        self, results_dir, cluster, proc, return_value, glidein_cmssite=None,
         keep_output_steps=None, request_path=None,
     ):
         """On JOB_TERMINATED: find job_report, extract output files, store in DB. Returns (ok, result)."""
@@ -334,8 +343,8 @@ class FileDB:
                     built = build_lfn_for_file(f, request_path)
                     if built:
                         f["lfn"] = built
-        self.insert_files(f"{cluster}.{proc}", files, job_exit_code=return_value, rse=rse)
-        logger.debug("Job %s.%s: stored %d files (exit=%s, rse=%s)", cluster, proc, len(files), return_value, rse)
+        self.insert_files(f"{cluster}.{proc}", files, job_exit_code=return_value, glidein_cmssite=glidein_cmssite)
+        logger.debug("Job %s.%s: stored %d files (exit=%s, glidein_cmssite=%s)", cluster, proc, len(files), return_value, glidein_cmssite)
         return True, len(files)
 
     def close(self):
@@ -370,9 +379,9 @@ class Monitor:
                 return 0
             processed_jobs.add(key)
         return_value = int(extra.get("ReturnValue", -1))
-        rse = extra.get("JOB_Site") or extra.get("JOB_GLIDEIN_Site") or None
+        glidein_cmssite = extra.get("JOB_GLIDEIN_Site") or None
         ok, result = self.db.process_terminated_job(
-            self.results_dir, cluster, proc, return_value, rse=rse,
+            self.results_dir, cluster, proc, return_value, glidein_cmssite=glidein_cmssite,
             keep_output_steps=self.keep_output_steps,
             request_path=self.request_path,
         )
@@ -419,6 +428,7 @@ class Monitor:
                         last_full_reread = time.time()
                     else:
                         logger.debug("Reading new content from offset %s", last_position)
+
 
                     for ev in self.parser.iter_log_file(start_offset=start_offset):
                         event_code, cluster, proc, subproc, timestamp, message, extra = ev

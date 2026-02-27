@@ -10,7 +10,6 @@ This directory contains samples and scripts for the Micro Agent workflow.
 
 ## Files
 
-- `run_test.sh` – Full workflow: split, create JDL, submit. Run from repo root.
 - `run.10372180` – Sample job log file (condor user log format).
 - `job_report.10409446.0..json` – Sample framework job report (cluster 10409446, proc 0).
 
@@ -47,7 +46,7 @@ python -m micro_agent.micro_agent_monitor --log ... -v   # DEBUG on stdout
 
 ### SQLite Schema
 
-- **processed_files**: condor_job_id, lfn, pfn, step_name, events, size, rse (storage site), job_exit_code, etc.
+- **processed_files**: condor_job_id, lfn, pfn, step_name, events, size, glidein_cmssite (execution site), pnn (storage site), job_exit_code, etc.
 
 MAM stores only output files (no inputs). With `--request request.json`, only outputs from steps with `KeepOutput==True` are stored.
 

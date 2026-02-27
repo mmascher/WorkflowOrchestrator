@@ -174,6 +174,32 @@ class TestFrameworkJobReport(unittest.TestCase):
                 self.assertIsNone(err)
                 self.assertEqual(len(files), 1)
                 self.assertEqual(files[0]["pfn"], "out.root")
+                self.assertEqual(files[0].get("pnn"), "")
+            finally:
+                os.unlink(tf.name)
+
+    def test_extract_files_with_pnn(self):
+        """Extract pfn and pnn from stage-out merged report."""
+        report = {
+            "steps": {
+                "step6": {
+                    "output": {
+                        "NANOAODSIMoutput": [
+                            {"lfn": "/store/unmerged/era/ds/tier/proc-v3/NANOAODSIMoutput.root", "pfn": "root://eos/store/.../file.root", "pnn": "T2_CH_CERN"}
+                        ]
+                    }
+                }
+            }
+        }
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as tf:
+            try:
+                json.dump(report, tf)
+                tf.close()
+                files, err = FrameworkJobReport.extract_files(tf.name)
+                self.assertIsNone(err)
+                self.assertEqual(len(files), 1)
+                self.assertEqual(files[0]["pfn"], "root://eos/store/.../file.root")
+                self.assertEqual(files[0]["pnn"], "T2_CH_CERN")
             finally:
                 os.unlink(tf.name)
 
@@ -187,13 +213,15 @@ class TestFileDB(unittest.TestCase):
             try:
                 db = FileDB(tf.name)
                 files = [
-                    {"lfn": "/store/a.root", "pfn": "root://x/a.root", "step_name": "s1", "events": 10},
+                    {"lfn": "/store/a.root", "pfn": "root://x/a.root", "pnn": "T2_CH_CERN", "step_name": "s1", "events": 10},
                     {"lfn": "", "pfn": "out.root", "step_name": "s1", "events": 10},
                 ]
-                db.insert_files("10409446.0", files)
-                cur = db.conn.execute("SELECT lfn, pfn FROM processed_files")
+                db.insert_files("10409446.0", files, glidein_cmssite="T3_US_FNALLPC")
+                cur = db.conn.execute("SELECT lfn, pfn, glidein_cmssite, pnn FROM processed_files")
                 rows = cur.fetchall()
                 self.assertEqual(len(rows), 2)
+                self.assertEqual(rows[0][2], "T3_US_FNALLPC")
+                self.assertEqual(rows[0][3], "T2_CH_CERN")
                 db.close()
             finally:
                 os.unlink(tf.name)

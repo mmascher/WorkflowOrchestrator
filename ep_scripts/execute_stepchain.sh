@@ -204,6 +204,7 @@ run_create_report() {
 # Stage-out: transfer output files for steps with KeepOutput=true via stage_out.py
 # Uses REQUEST_JSON and TMP_DIR from the calling script.
 run_stageout() {
+    STAGEOUT_EXIT=0
     echo "[execute_stepchain] ========== Stage-out (steps with KeepOutput=true) =========="
     STAGEOUT_SCRIPT="$SCRIPT_DIR/stage_out.py"
     if [ ! -f "$STAGEOUT_SCRIPT" ]; then
@@ -223,14 +224,15 @@ run_stageout() {
         echo "[execute_stepchain] Stage-out skipped (SITECONFIG_PATH not set)."
         return 0
     fi
-    "$STAGEOUT_SCRIPT" --request "$REQUEST_JSON" --work-dir "$TMP_DIR" || { echo "[execute_stepchain] Stage-out failed"; exit $EXIT_STAGEOUT; }
+    "$STAGEOUT_SCRIPT" --request "$REQUEST_JSON" --work-dir "$TMP_DIR"
     )
     STAGEOUT_EXIT=$?
     if [ "$STAGEOUT_EXIT" -ne 0 ]; then
-        echo "[execute_stepchain] Stage-out failed (exit code $STAGEOUT_EXIT)"
-        exit $STAGEOUT_EXIT
+        echo "[execute_stepchain] Stage-out failed (exit code $STAGEOUT_EXIT); create_report will run without stage-out data."
+    else
+        echo "[execute_stepchain] Stage-out completed."
     fi
-    echo "[execute_stepchain] Stage-out completed."
+    return $STAGEOUT_EXIT
 }
 
 touch job_report.json # Avoid condor failing to transfer the report if no steps are run
@@ -339,8 +341,14 @@ done
 
 echo "[execute_stepchain] All steps completed successfully."
 
+# Stage-out first (writes stage_out_results.json for create_report to merge).
+# Create report runs even if stage-out fails, so we always have job_report.json.
+run_stageout || true
 run_create_report
-run_stageout
 
+if [ "${STAGEOUT_EXIT:-0}" -ne 0 ]; then
+    echo "[execute_stepchain] Exiting with stage-out failure (exit code ${STAGEOUT_EXIT})"
+    exit ${STAGEOUT_EXIT}
+fi
 echo "[execute_stepchain] execute_stepchain.sh completed successfully."
 exit 0
