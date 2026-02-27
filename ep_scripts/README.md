@@ -1,5 +1,7 @@
 # Execute Point Scripts
 
+**utils.py** — Not in ep_scripts. Copy from `src/python/micro_agent/utils.py` into the submission directory (alongside stage_out.py) before condor_submit. Edit the canonical file only.
+
 ## execute_stepchain.sh
 
 Runs a **single** StepChain job: given the request tarball and one `jobN.json`, it executes the full chain of steps (cmsRun 1 through N) on the machine where it is invoked. Intended to be used as the **job executable when submitting to the Grid**: transfer `request_psets.tar.gz` and one `jobN.json` per job, then call this script with those two arguments.

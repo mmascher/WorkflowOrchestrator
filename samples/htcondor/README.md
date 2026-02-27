@@ -34,6 +34,7 @@ Copy the necessary files into this directory:
    cp "$WO_DIR/ep_scripts/submit_env.sh" .
    cp "$WO_DIR/ep_scripts/stage_out.py" .
    cp "$WO_DIR/ep_scripts/create_report.py" .
+   cp "$WO_DIR/src/python/micro_agent/utils.py" .
    cp "$WO_DIR/samples/htcondor/WMCore.zip" .
 
    cp "$WO_DIR/samples/htcondor/job.jdl" .
@@ -58,6 +59,7 @@ htcondor/
 ├── execute_stepchain.sh
 ├── submit_env.sh
 ├── stage_out.py
+├── utils.py
 ├── WMCore.zip
 ├── event_splitter_out/
 │   ├── job0.json
