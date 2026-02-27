@@ -128,7 +128,7 @@ Error      = err/run.$(Cluster).$(Process).$(NumJobCompletions)
 
 should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
-transfer_input_files = execute_stepchain.sh,submit_env.sh,stage_out.py,create_report.py,WMCore.zip,{event_splitter_dir}/job$(Index).json,{event_splitter_dir}/request_psets.tar.gz
+transfer_input_files = execute_stepchain.sh,submit_env.sh,stage_out.py,create_report.py,WMCore.zip,utils.py,{event_splitter_dir}/job$(Index).json,{event_splitter_dir}/request_psets.tar.gz
 transfer_output_files = output.tgz, job_report.json, prmon.txt, prmon.json
 transfer_output_remaps = "output.tgz = results/output.$(Cluster).$(Process).$(NumJobCompletions).tgz; job_report.json = results/job_report.$(Cluster).$(Process).$(NumJobCompletions).json; prmon.txt = results/prmon.$(Cluster).$(Process).$(NumJobCompletions).txt; prmon.json = results/prmon.$(Cluster).$(Process).$(NumJobCompletions).json"
 

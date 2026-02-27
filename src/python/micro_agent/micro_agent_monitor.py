@@ -22,6 +22,8 @@ import sqlite3
 import sys
 import time
 
+from micro_agent.utils import build_lfn_for_file
+
 logger = logging.getLogger("micro_agent_monitor")
 
 
@@ -298,7 +300,10 @@ class FileDB:
                 pass
         self.conn.commit()
 
-    def process_terminated_job(self, results_dir, cluster, proc, return_value, rse=None, keep_output_steps=None):
+    def process_terminated_job(
+        self, results_dir, cluster, proc, return_value, rse=None,
+        keep_output_steps=None, request_path=None,
+    ):
         """On JOB_TERMINATED: find job_report, extract output files, store in DB. Returns (ok, result)."""
         report_path = FrameworkJobReport.find(results_dir, cluster, proc)
         if not report_path:
@@ -309,6 +314,12 @@ class FileDB:
         if err:
             logger.debug("Job %s.%s: extract_files failed: %s", cluster, proc, err)
             return False, err
+        if request_path:
+            for f in files:
+                if not (f.get("lfn") or f.get("LFN")):
+                    built = build_lfn_for_file(f, request_path)
+                    if built:
+                        f["lfn"] = built
         self.insert_files(f"{cluster}.{proc}", files, job_exit_code=return_value, rse=rse)
         logger.debug("Job %s.%s: stored %d files (exit=%s, rse=%s)", cluster, proc, len(files), return_value, rse)
         return True, len(files)
@@ -328,7 +339,8 @@ class Monitor:
         self.results_dir = os.path.abspath(results_dir)
         self.db = FileDB(os.path.abspath(db_path))
         self.parser = CondorLogParser(self.condor_log_file)
-        self.keep_output_steps = load_keep_output_steps(os.path.abspath(request_path)) if request_path else None
+        self.request_path = os.path.abspath(request_path) if request_path else None
+        self.keep_output_steps = load_keep_output_steps(self.request_path) if self.request_path else None
         if self.keep_output_steps:
             logger.info("KeepOutput steps from %s: %s", request_path, sorted(self.keep_output_steps))
 
@@ -348,6 +360,7 @@ class Monitor:
                 ok, result = self.db.process_terminated_job(
                     self.results_dir, cluster, proc, return_value, rse=rse,
                     keep_output_steps=self.keep_output_steps,
+                    request_path=self.request_path,
                 )
                 if ok:
                     processed += 1

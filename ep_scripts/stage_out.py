@@ -14,7 +14,12 @@ import os
 import sys
 
 # logging.basicConfig(level=logging.INFO)
-# WMCore Storage (add src/python to PYTHONPATH)
+# utils.py is transferred alongside stage_out.py (same dir)
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+if _script_dir not in sys.path:
+    sys.path.insert(0, _script_dir)
+from utils import build_lfn
+
 from WMCore.Storage.StageOutMgr import StageOutMgr
 
 
@@ -55,14 +60,7 @@ def discover_files_from_request(request_path, work_dir):
         era = step.get("AcquisitionEra", "")
         primary = step.get("PrimaryDataset", "")
         proc = step.get("ProcessingString", "")
-        tier = (
-            out_module.replace("output", "")
-            if out_module.endswith("output")
-            else out_module
-        )
-        lfn = "%s/%s/%s/%s/%s-v3/%s.root" % (
-            base, era, primary, tier, proc, out_module
-        )
+        lfn = build_lfn(base, era, primary, proc, out_module)
         result.append({"lfn": lfn, "local_path": local_path})
     return result
 

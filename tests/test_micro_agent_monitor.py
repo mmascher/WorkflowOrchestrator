@@ -18,6 +18,7 @@ from micro_agent.micro_agent_monitor import (
     load_keep_output_steps,
     ULOG_JOB_TERMINATED,
 )
+from micro_agent.utils import build_lfn, build_lfn_for_file, load_step_config
 
 
 class TestCondorLogParser(unittest.TestCase):
@@ -96,6 +97,32 @@ class TestFrameworkJobReport(unittest.TestCase):
         self.assertIn("step5", steps)
         self.assertIn("step6", steps)
         self.assertNotIn("step1", steps)
+
+    def test_build_lfn(self):
+        """build_lfn produces correct format."""
+        lfn = build_lfn(
+            "/store/unmerged",
+            "RunIISummer20UL17pp5TeVRECO",
+            "WplusJets",
+            "106X_mc2017_realistic_forppRef5TeV_v3",
+            "AODSIMoutput",
+        )
+        self.assertTrue(lfn.startswith("/store/unmerged/"))
+        self.assertIn("AODSIM/", lfn)
+        self.assertTrue(lfn.endswith("AODSIMoutput.root"))
+
+    def test_build_lfn_for_file_with_request(self):
+        """build_lfn_for_file builds LFN when lfn empty and request provided."""
+        request_path = os.path.join(
+            os.path.dirname(__file__), "..",
+            "samples", "cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792",
+            "request.json",
+        )
+        f = {"lfn": "", "step_name": "step4", "module_label": "AODSIMoutput"}
+        built = build_lfn_for_file(f, request_path)
+        self.assertTrue(built.startswith("/store/"))
+        self.assertIn("AODSIM", built)
+        self.assertTrue(built.endswith("AODSIMoutput.root"))
 
     def test_extract_files_keep_output_only(self):
         """keep_output_steps filters to outputs from those steps."""
@@ -184,6 +211,31 @@ class TestFileDB(unittest.TestCase):
                 self.assertGreater(result, 0)
                 cur = db.conn.execute("SELECT COUNT(*) FROM processed_files")
                 self.assertEqual(cur.fetchone()[0], result)
+                db.close()
+            finally:
+                os.unlink(tf.name)
+
+    def test_process_terminated_job_builds_lfn_with_request(self):
+        """When request_path given, empty LFNs are built from request.json."""
+        samples_dir = os.path.join(os.path.dirname(__file__), "..", "samples", "micro_agent")
+        request_path = os.path.join(
+            os.path.dirname(__file__), "..",
+            "samples", "cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792",
+            "request.json",
+        )
+        with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tf:
+            tf.close()
+            try:
+                db = FileDB(tf.name)
+                ok, result = db.process_terminated_job(
+                    samples_dir, 10409446, 0, return_value=0, request_path=request_path
+                )
+                self.assertTrue(ok)
+                cur = db.conn.execute("SELECT lfn FROM processed_files WHERE lfn != '' LIMIT 1")
+                row = cur.fetchone()
+                self.assertIsNotNone(row)
+                self.assertTrue(row[0].startswith("/store/"))
+                self.assertTrue(row[0].endswith(".root"))
                 db.close()
             finally:
                 os.unlink(tf.name)
