@@ -4,8 +4,8 @@ Micro Agent Monitor (MAM): monitors HTCondor job log files and records file-leve
 processing information in a local SQLite database.
 
 Parses the condor user log (JDL Log macro, e.g. log/run.<Cluster>) for job events.
-On JOB_TERMINATED (success), reads the framework job_report JSON and stores information
-about processed files (input/output) in SQLite. File-centric, not job-centric.
+On JOB_TERMINATED (success), reads the framework job_report JSON and stores output file
+information in SQLite. File-centric, not job-centric.
 
 Usage:
   python -m micro_agent.micro_agent_monitor --log log/run.10372180 --results-dir results --db micro_agent.db
@@ -26,13 +26,17 @@ from micro_agent.utils import build_lfn_for_file
 
 logger = logging.getLogger("micro_agent_monitor")
 
+# Daemon: full re-read interval (seconds). Read only new lines between re-reads.
+FULL_REREAD_INTERVAL = 3600  # 1 hour
 
 # HTCondor user log event codes (from Job Event Log Codes)
 ULOG_SUBMIT = 0
 ULOG_EXECUTE = 1
 ULOG_JOB_TERMINATED = 5
+ULOG_IMAGE_SIZE = 6
 ULOG_JOB_ABORTED = 9
 ULOG_JOB_EVICTED = 4
+ULOG_JOB_AD = 28
 
 
 class CondorLogParser:
@@ -44,6 +48,7 @@ class CondorLogParser:
 
     def __init__(self, log_path):
         self.log_path = os.path.abspath(log_path) if log_path else None
+        self.last_position = 0  # file offset after last iter_log_file run
 
     @staticmethod
     def parse_event(line):
@@ -129,21 +134,30 @@ class CondorLogParser:
                 if (
                     next_parsed is not None
                     and event_code == ULOG_JOB_TERMINATED
-                    and next_parsed[0] == 28
+                    and next_parsed[0] == ULOG_JOB_AD
                     and (cluster, proc) == (next_parsed[1], next_parsed[2])
                 ):
                     line = self._read_key_values_until_stop(line_iter, extra)
 
             yield (event_code, cluster, proc, subproc, timestamp, message, extra)
 
-    def iter_log_file(self):
-        """Yield events from log file. Streams line-by-line."""
+    def iter_log_file(self, start_offset=0):
+        """
+        Yield events from log file. Streams line-by-line.
+        If start_offset > 0, seek there and read only new content (incremental).
+        Sets self.last_position to file offset when done (for incremental reads).
+        """
         if not self.log_path or not os.path.isfile(self.log_path):
             logger.debug("iter_log_file: no file at %s", self.log_path)
             return
-        logger.debug("Parsing log file: %s", self.log_path)
         with open(self.log_path, "r", errors="replace") as f:
+            if start_offset > 0:
+                f.seek(start_offset)
+                logger.debug("Reading log from offset %s", start_offset)
+            else:
+                logger.debug("Parsing log file: %s", self.log_path)
             yield from self.iter_events(f)
+            self.last_position = f.tell()
 
 
 def load_keep_output_steps(request_path):
@@ -344,6 +358,30 @@ class Monitor:
         if self.keep_output_steps:
             logger.info("KeepOutput steps from %s: %s", request_path, sorted(self.keep_output_steps))
 
+    def _handle_terminated_job(self, cluster, proc, extra, processed_jobs=None):
+        """
+        Process a JOB_TERMINATED event. If processed_jobs is provided, skip if already seen.
+        Returns (1 if processed, 0 otherwise).
+        """
+        if processed_jobs is not None:
+            key = (cluster, proc)
+            if key in processed_jobs:
+                logger.debug("Job %s.%s already processed, skipping", cluster, proc)
+                return 0
+            processed_jobs.add(key)
+        return_value = int(extra.get("ReturnValue", -1))
+        rse = extra.get("JOB_Site") or extra.get("JOB_GLIDEIN_Site") or None
+        ok, result = self.db.process_terminated_job(
+            self.results_dir, cluster, proc, return_value, rse=rse,
+            keep_output_steps=self.keep_output_steps,
+            request_path=self.request_path,
+        )
+        if ok:
+            logger.info("Job %s.%s terminated (exit=%s): stored %s files", cluster, proc, return_value, result)
+            return 1
+        logger.warning("Job %s.%s: %s", cluster, proc, result)
+        return 0
+
     def run_once(self):
         """Single pass over log file."""
         if not os.path.isfile(self.condor_log_file):
@@ -355,26 +393,15 @@ class Monitor:
             event_code, cluster, proc, subproc, timestamp, message, extra = ev
             logger.debug("Event %s (cluster=%s.%s.%s): %s", event_code, cluster, proc, subproc, message)
             if event_code == ULOG_JOB_TERMINATED:
-                return_value = int(extra.get("ReturnValue", -1))
-                rse = extra.get("JOB_Site") or extra.get("JOB_GLIDEIN_Site") or None
-                ok, result = self.db.process_terminated_job(
-                    self.results_dir, cluster, proc, return_value, rse=rse,
-                    keep_output_steps=self.keep_output_steps,
-                    request_path=self.request_path,
-                )
-                if ok:
-                    processed += 1
-                    logger.info("Job %s.%s terminated (exit=%s): stored %s files", cluster, proc, return_value, result)
-                else:
-                    logger.warning("Job %s.%s: %s", cluster, proc, result)
-
+                processed += self._handle_terminated_job(cluster, proc, extra)
         logger.info("Processed %s terminated jobs", processed)
         return 0
 
     def run_daemon(self, poll_interval=10):
-        """Poll log file and process new events. Re-reads when file grows; skips already-processed jobs."""
-        logger.info("Daemon mode: watching %s (poll every %ss)", self.condor_log_file, poll_interval)
-        last_size = 0
+        """Poll log file and process new events. Reads only new lines; full re-read every FULL_REREAD_INTERVAL."""
+        logger.info("Daemon mode: watching %s (poll every %ss, full re-read every %ss)", self.condor_log_file, poll_interval, FULL_REREAD_INTERVAL)
+        last_position = 0
+        last_full_reread = time.time()
         processed_jobs = set()
 
         while True:
@@ -384,28 +411,22 @@ class Monitor:
                     time.sleep(poll_interval)
                     continue
                 size = os.path.getsize(self.condor_log_file)
-                if size > last_size:
-                    logger.debug("Log file grew (%s -> %s bytes), re-parsing", last_size, size)
-                    for ev in self.parser.iter_log_file():
+                if size > last_position:
+                    do_full = (time.time() - last_full_reread) >= FULL_REREAD_INTERVAL
+                    start_offset = 0 if do_full else last_position
+                    if do_full:
+                        logger.debug("Full re-read (interval %ss elapsed)", FULL_REREAD_INTERVAL)
+                        last_full_reread = time.time()
+                    else:
+                        logger.debug("Reading new content from offset %s", last_position)
+
+                    for ev in self.parser.iter_log_file(start_offset=start_offset):
                         event_code, cluster, proc, subproc, timestamp, message, extra = ev
-                        logger.debug("Event %s (cluster=%s.%s.%s): %s", event_code, cluster, proc, subproc, message)
+                        if event_code not in (ULOG_IMAGE_SIZE, ULOG_JOB_AD):
+                            logger.debug("Event %s (cluster=%s.%s.%s): %s", event_code, cluster, proc, subproc, message)
                         if event_code == ULOG_JOB_TERMINATED:
-                            key = (cluster, proc)
-                            if key in processed_jobs:
-                                logger.debug("Job %s.%s already processed, skipping", cluster, proc)
-                                continue
-                            processed_jobs.add(key)
-                            return_value = int(extra.get("ReturnValue", -1))
-                            rse = extra.get("JOB_Site") or extra.get("JOB_GLIDEIN_Site") or None
-                            ok, result = self.db.process_terminated_job(
-                                self.results_dir, cluster, proc, return_value, rse=rse,
-                                keep_output_steps=self.keep_output_steps,
-                            )
-                            if ok:
-                                logger.info("Job %s.%s: stored %s files", cluster, proc, result)
-                            else:
-                                logger.warning("Job %s.%s: %s", cluster, proc, result)
-                    last_size = size
+                            self._handle_terminated_job(cluster, proc, extra, processed_jobs=processed_jobs)
+                    last_position = self.parser.last_position
                 time.sleep(poll_interval)
             except KeyboardInterrupt:
                 logger.info("Stopping daemon (interrupted)")
