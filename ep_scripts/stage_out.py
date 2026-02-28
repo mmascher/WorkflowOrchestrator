@@ -53,9 +53,11 @@ def discover_files_from_request(request_path, work_dir):
                         out_module = f[:-5]
                         break
         if not out_module:
+            print("[stage_out] Skipping step%d: could not determine output module" % n)
             continue
         local_path = os.path.join(step_dir, out_module + ".root")
         if not os.path.isfile(local_path):
+            print("[stage_out] Skipping step%d: file not found: %s" % (n, local_path))
             continue
         era = step.get("AcquisitionEra", "")
         primary = step.get("PrimaryDataset", "")
@@ -88,7 +90,7 @@ def stageout_files(file_list, retries=3, retry_pause=600):
         local_path = file_info['local_path'].replace('file:', '')
         file_size = os.path.getsize(local_path) if os.path.isfile(local_path) else 0
         size_mb = file_size / (1024 * 1024)
-        print("Staging out: %s (%.2f MB)" % (file_info['lfn'], size_mb))
+        print("[stage_out] Staging out: %s (%.2f MB)" % (file_info['lfn'], size_mb))
 
         fileToStage = {
             'LFN': file_info['lfn'],
