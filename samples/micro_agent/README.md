@@ -23,32 +23,32 @@ MAM parses the condor user log (JDL `Log` macro, e.g. `log/run.<Cluster>`) and:
 
 ### Usage
 
+`--request request.json` is required. Only outputs from steps with `KeepOutput==True` are stored.
+
 ```bash
 # Single pass over existing log (e.g. after jobs finished)
 python -m micro_agent.micro_agent_monitor \
   --log samples/micro_agent/run.10372180 \
   --results-dir /path/to/results \
   --db micro_agent.db \
+  --request request.json \
   --once
 
 # Daemon mode (from test_jdl after run_test.sh; use your condor cluster ID for the log path)
 cd test_jdl
 PYTHONPATH=/path/to/WorkflowOrchestrator/src/python python -m micro_agent.micro_agent_monitor \
-  --log log/run.10372180 --results-dir results --db micro_agent.db
-
-# With request.json: only outputs from steps with KeepOutput==True
-python -m micro_agent.micro_agent_monitor --log ... --request request.json --once
+  --log log/run.10372180 --results-dir results --db micro_agent.db --request request.json
 
 # Logging: save to file (DEBUG) and/or verbose stdout
-python -m micro_agent.micro_agent_monitor --log ... --log-file micro_agent.log
-python -m micro_agent.micro_agent_monitor --log ... -v   # DEBUG on stdout
+python -m micro_agent.micro_agent_monitor --log ... --request request.json --log-file micro_agent.log
+python -m micro_agent.micro_agent_monitor --log ... --request request.json -v   # DEBUG on stdout
 ```
 
 ### SQLite Schema
 
 - **processed_files**: condor_job_id, lfn, pfn, step_name, events, size, glidein_cmssite (execution site), pnn (storage site), job_exit_code, etc.
 
-MAM stores only output files (no inputs). With `--request request.json`, only outputs from steps with `KeepOutput==True` are stored.
+MAM stores only output files (no inputs). Only outputs from steps with `KeepOutput==True` (from `--request request.json`) are stored.
 
 ### Query
 

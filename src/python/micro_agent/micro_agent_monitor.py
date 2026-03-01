@@ -8,9 +8,10 @@ On JOB_TERMINATED (success), reads the framework job_report JSON and stores outp
 information in SQLite. File-centric, not job-centric.
 
 Usage:
-  python -m micro_agent.micro_agent_monitor --log log/run.10372180 --results-dir results --db micro_agent.db
-  python -m micro_agent.micro_agent_monitor --log log/run.10372180 --results-dir results --db micro_agent.db --once
+  python -m micro_agent.micro_agent_monitor --log log/run.10372180 --results-dir results --db micro_agent.db --request request.json
+  python -m micro_agent.micro_agent_monitor --log log/run.10372180 --results-dir results --db micro_agent.db --request request.json --once
 
+--request is required; only outputs from steps with KeepOutput==True are stored.
 Can run in daemon mode (default) tailing the log, or --once for a single pass.
 """
 import argparse
@@ -164,15 +165,13 @@ def load_keep_output_steps(request_path):
     """
     Load step names with KeepOutput==True from request.json.
     Request uses Step1, Step2, ...; job_report uses step1, step2, ...
-    Returns set of step names (e.g. {"step4", "step5", "step6"}) or None if not found.
+    Returns set of step names (e.g. {"step4", "step5", "step6"}).
     """
-    if not request_path or not os.path.isfile(request_path):
-        return None
     try:
         with open(request_path) as f:
             req = json.load(f)
-    except (json.JSONDecodeError, OSError):
-        return None
+    except (json.JSONDecodeError, OSError) as e:
+        raise SystemExit("Error: could not read request from %s: %s" % (request_path, e))
     steps = set()
     for i in range(1, 20):
         key = f"Step{i}"
@@ -181,7 +180,7 @@ def load_keep_output_steps(request_path):
             break
         if step_cfg.get("KeepOutput") is True:
             steps.add(f"step{i}")
-    return steps if steps else None
+    return steps
 
 
 class FrameworkJobReport:
@@ -199,6 +198,8 @@ class FrameworkJobReport:
         prefix = f"job_report.{cluster}.{proc}."
         best_path, best_n = None, -1
         try:
+            # TODO: do not use os.listdir, use a more efficient method to find the job_report JSON.
+            # Need to ask the condor devs how to do this efficiently, e.g.: make sure the NUM_COMPLETIONS is set.
             for name in os.listdir(results_dir):
                 if name.startswith(prefix) and name.endswith(".json"):
                     suffix = name[len(prefix) : -len(".json")]
@@ -213,13 +214,12 @@ class FrameworkJobReport:
         return best_path
 
     @staticmethod
-    def extract_files(report_path, keep_output_steps=None):
+    def extract_files(report_path, keep_output_steps):
         """
         Extract output file information from job_report.json.
         Args:
             report_path: Path to job_report JSON.
-            keep_output_steps: If set, only include outputs from these step names
-                (e.g. {"step4", "step5"}). Used with request.json KeepOutput.
+            keep_output_steps: Set of step names to include (e.g. {"step4", "step5", "step6"}).
         Returns (list of dicts, error).
         """
         try:
@@ -232,18 +232,16 @@ class FrameworkJobReport:
         files = []
 
         for step_name, step_data in steps.items():
-            if not step_data:
+            if not step_data or step_name not in keep_output_steps:
                 continue
 
             for mod_name, file_list in step_data.get("output", {}).items():
-                if keep_output_steps is not None and step_name not in keep_output_steps:
-                    continue
                 for fi in file_list if isinstance(file_list, list) else []:
                     lfn = fi.get("lfn") or fi.get("LFN") or fi.get("logicalFileName")
                     pfn = fi.get("pfn") or fi.get("PFN") or fi.get("fileName") or fi.get("physicalFileName")
                     pnn = fi.get("pnn") or fi.get("PNN")
                     events = fi.get("events") or fi.get("EventsWritten")
-                    size = fi.get("size")
+                    size = fi.get("size") or fi.get("Size") or fi.get("SizeBytes")
                     if lfn or pfn:
                         files.append({
                             "lfn": lfn or "",
@@ -291,11 +289,6 @@ class FileDB:
             CREATE INDEX IF NOT EXISTS idx_files_job ON processed_files(condor_job_id);
             CREATE INDEX IF NOT EXISTS idx_files_pnn ON processed_files(pnn);
         """)
-        for col in ("glidein_cmssite", "pnn"):
-            try:
-                self.conn.execute("ALTER TABLE processed_files ADD COLUMN %s TEXT" % col)
-            except sqlite3.OperationalError:
-                pass
         self.conn.commit()
 
     def insert_files(self, condor_job_id, files, job_exit_code=0, glidein_cmssite=None):
@@ -325,7 +318,7 @@ class FileDB:
 
     def process_terminated_job(
         self, results_dir, cluster, proc, return_value, glidein_cmssite=None,
-        keep_output_steps=None, request_path=None,
+        *, keep_output_steps, request_path,
     ):
         """On JOB_TERMINATED: find job_report, extract output files, store in DB. Returns (ok, result)."""
         report_path = FrameworkJobReport.find(results_dir, cluster, proc)
@@ -333,16 +326,15 @@ class FileDB:
             logger.debug("Job %s.%s: no job_report found in %s", cluster, proc, results_dir)
             return False, "job_report not found"
         logger.debug("Job %s.%s: found report %s", cluster, proc, report_path)
-        files, err = FrameworkJobReport.extract_files(report_path, keep_output_steps=keep_output_steps)
+        files, err = FrameworkJobReport.extract_files(report_path, keep_output_steps)
         if err:
             logger.debug("Job %s.%s: extract_files failed: %s", cluster, proc, err)
             return False, err
-        if request_path:
-            for f in files:
-                if not (f.get("lfn") or f.get("LFN")):
-                    built = build_lfn_for_file(f, request_path)
-                    if built:
-                        f["lfn"] = built
+        for f in files:
+            if not (f.get("lfn") or f.get("LFN")):
+                built = build_lfn_for_file(f, request_path)
+                if built:
+                    f["lfn"] = built
         self.insert_files(f"{cluster}.{proc}", files, job_exit_code=return_value, glidein_cmssite=glidein_cmssite)
         logger.debug("Job %s.%s: stored %d files (exit=%s, glidein_cmssite=%s)", cluster, proc, len(files), return_value, glidein_cmssite)
         return True, len(files)
@@ -357,21 +349,22 @@ class Monitor:
     Holds condor log path, results dir, parser, and db; found once at init.
     """
 
-    def __init__(self, log_path, results_dir, db_path, request_path=None):
+    def __init__(self, log_path, results_dir, db_path, request_path):
         self.condor_log_file = os.path.abspath(log_path)
         self.results_dir = os.path.abspath(results_dir)
         self.db = FileDB(os.path.abspath(db_path))
         self.parser = CondorLogParser(self.condor_log_file)
-        self.request_path = os.path.abspath(request_path) if request_path else None
-        self.keep_output_steps = load_keep_output_steps(self.request_path) if self.request_path else None
-        if self.keep_output_steps:
-            logger.info("KeepOutput steps from %s: %s", request_path, sorted(self.keep_output_steps))
+        self.request_path = os.path.abspath(request_path)
+        self.keep_output_steps = load_keep_output_steps(self.request_path)
+        logger.info("KeepOutput steps from %s: %s", request_path, sorted(self.keep_output_steps))
 
     def _handle_terminated_job(self, cluster, proc, extra, processed_jobs=None):
         """
         Process a JOB_TERMINATED event. If processed_jobs is provided, skip if already seen.
         Returns (1 if processed, 0 otherwise).
         """
+        # Daemon does full re-read every FULL_REREAD_INTERVAL; processed_jobs avoids
+        # re-processing the same jobs (re-reading reports, re-inserting) on each re-read.
         if processed_jobs is not None:
             key = (cluster, proc)
             if key in processed_jobs:
@@ -499,7 +492,8 @@ def parse_args():
     p.add_argument(
         "--request",
         metavar="FILE",
-        help="Request.json path; when given, only store outputs from steps with KeepOutput==True",
+        required=True,
+        help="Request.json path (required); only store outputs from steps with KeepOutput==True",
     )
     p.add_argument(
         "--log-file",
@@ -529,6 +523,9 @@ def parse_args():
 def main():
     args = parse_args()
     setup_logging(log_file=args.log_file, verbose=args.verbose)
+
+    if not os.path.isfile(args.request):
+        sys.exit("Error: request file not found: %s" % args.request)
 
     monitor = Monitor(args.log, args.results_dir, args.db, request_path=args.request)
     try:

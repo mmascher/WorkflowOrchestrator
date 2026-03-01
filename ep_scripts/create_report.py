@@ -14,6 +14,10 @@ import os
 import re
 import sys
 
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+if _script_dir not in sys.path:
+    sys.path.insert(0, _script_dir)
+
 
 def discover_report_paths(work_dir, request_path):
     """
@@ -23,6 +27,7 @@ def discover_report_paths(work_dir, request_path):
     For step1 with num_copies>1: ("step1_copy0", ".../step1/copy0/job_report.xml"), etc.
     """
     if not os.path.isfile(request_path):
+        print("[create_report] Request file not found: %s" % request_path, file=sys.stderr)
         return []
     with open(request_path) as f:
         req = json.load(f)
@@ -36,16 +41,21 @@ def discover_report_paths(work_dir, request_path):
                 path = os.path.join(work_dir, "step1", "copy%d" % c, "job_report.xml")
                 if os.path.isfile(path):
                     result.append(("step1_copy%d" % c, os.path.abspath(path)))
+                else:
+                    print("[create_report] job_report.xml not found: %s" % path, file=sys.stderr)
         else:
             path = os.path.join(work_dir, "step%d" % n, "job_report.xml")
             if os.path.isfile(path):
                 result.append(("step%d" % n, os.path.abspath(path)))
+            else:
+                print("[create_report] job_report.xml not found: %s" % path, file=sys.stderr)
     return result
 
 
 def strip_report_step(step_data):
     """Strip 'file:' prefix from pfn and fileName in output file info (CRAB StripReport logic)."""
     if not step_data or "output" not in step_data:
+        print("[create_report] Skipping strip_report_step: no step_data or no output", file=sys.stderr)
         return
     for output_mod in step_data["output"].values():
         for file_info in output_mod:
@@ -87,13 +97,14 @@ def parse_report(xml_path):
 def get_step_exit_code(step_data):
     """Extract exit code from step data (errors, etc.)."""
     if not step_data:
+        print("[create_report] Skipping get_step_exit_code: no step_data", file=sys.stderr)
         return None
     for err in step_data.get("errors", []):
         if "exitCode" in err:
             try:
                 return int(err["exitCode"])
-            except (ValueError, TypeError):
-                pass
+            except (ValueError, TypeError) as e:
+                print("[create_report] Failed to parse exitCode %r: %s" % (err["exitCode"], e), file=sys.stderr)
     return None
 
 
@@ -101,6 +112,7 @@ def get_step_events(step_data):
     """Sum events from input source in step data."""
     total = 0
     if not step_data or "input" not in step_data or "source" not in step_data["input"]:
+        print("[create_report] Skipping get_step_events: no step_data or no input/source", file=sys.stderr)
         return total
     for src in step_data["input"]["source"]:
         total += int(src.get("events", 0) or src.get("EventsRead", 0) or 0)
@@ -108,33 +120,58 @@ def get_step_events(step_data):
 
 
 def load_stage_out_results(work_dir):
-    """Load stage_out_results.json if present. Returns dict LFN -> {pfn, pnn} or None."""
+    """
+    Load stage_out_results.json if present.
+    Returns staged_by_step_file: (step_name, basename) -> {pfn, pnn, size}.
+    LFN is derived from request when needed; we match by (step_name, basename) only.
+
+    Reads JSON, handles missing file/parse errors, builds a lookup dict.
+    The write side (stage_out) produces a flat list; the load side produces a keyed dict
+    for merging into the report. Same schema, different purposes.
+    """
     path = os.path.join(work_dir, "stage_out_results.json")
     if not os.path.isfile(path):
+        print("[create_report] stage_out_results.json not found: %s" % path, file=sys.stderr)
         return None
     try:
         with open(path) as f:
             data = json.load(f)
-        return {s["lfn"]: {"pfn": s.get("pfn"), "pnn": s.get("pnn")} for s in data.get("staged", [])}
+        staged_by_step_file = {}
+        for s in data.get("staged", []):
+            if s.get("step_name") and s.get("local_filename"):
+                entry = {"pfn": s.get("pfn"), "pnn": s.get("pnn"), "size": s.get("size")}
+                key = (s["step_name"], s["local_filename"])
+                staged_by_step_file[key] = entry
+        return staged_by_step_file
     except (json.JSONDecodeError, OSError, KeyError) as e:
         print("[create_report] Failed to read stage_out_results.json: %s" % e, file=sys.stderr)
         return None
 
 
-def merge_stage_out_into_report(report, staged_by_lfn):
-    """Merge staged pfn/pnn into output file records. Match by LFN."""
-    if not staged_by_lfn:
+def merge_stage_out_into_report(report, staged_by_step_file):
+    """Merge staged pfn/pnn into output file records. Match by (step_name, basename)."""
+    if not staged_by_step_file:
+        print("[create_report] No stage_out_results.json (stage-out failed or skipped).", file=sys.stderr)
         return
-    for step_data in report.get("steps", {}).values():
+    for step_name, step_data in report.get("steps", {}).items():
         if not step_data or "output" not in step_data:
+            print("[create_report] Skipping merge_stage_out_into_report: no step_data or no output", file=sys.stderr)
             continue
-        for file_list in step_data["output"].values():
+        step_base = step_name.split("_copy")[0] if "_copy" in step_name else step_name
+        for mod_name, file_list in step_data["output"].items():
             for fi in file_list if isinstance(file_list, list) else []:
-                lfn = fi.get("lfn") or fi.get("LFN") or fi.get("logicalFileName") or ""
-                if lfn and lfn in staged_by_lfn:
-                    s = staged_by_lfn[lfn]
+                pfn = fi.get("pfn") or fi.get("PFN") or fi.get("fileName") or ""
+                pfn = re.sub(r"^file:", "", str(pfn))
+                if not pfn:
+                    print("[create_report] No pfn found in file: %s" % fi, file=sys.stderr)
+                    continue
+                key = (step_base, os.path.basename(pfn))
+                s = staged_by_step_file.get(key)
+                if s:
                     fi["pfn"] = s.get("pfn") or fi.get("pfn")
                     fi["pnn"] = s.get("pnn")
+                    if s.get("size") is not None:
+                        fi["size"] = s["size"]
 
 
 def main():
@@ -212,9 +249,9 @@ def main():
         },
     }
 
-    staged_by_lfn = load_stage_out_results(work_dir)
-    if staged_by_lfn is not None:
-        merge_stage_out_into_report(report, staged_by_lfn)
+    staged_by_step_file = load_stage_out_results(work_dir)
+    if staged_by_step_file is not None:
+        merge_stage_out_into_report(report, staged_by_step_file)
     else:
         print("[create_report] No stage_out_results.json (stage-out failed or skipped).", file=sys.stderr)
 

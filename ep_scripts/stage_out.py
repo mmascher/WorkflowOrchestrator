@@ -63,7 +63,8 @@ def discover_files_from_request(request_path, work_dir):
         primary = step.get("PrimaryDataset", "")
         proc = step.get("ProcessingString", "")
         lfn = build_lfn(base, era, primary, proc, out_module)
-        result.append({"lfn": lfn, "local_path": local_path})
+        step_name = "step%d" % n
+        result.append({"lfn": lfn, "local_path": local_path, "step_name": step_name})
     return result
 
 
@@ -119,15 +120,31 @@ def stageout_files(file_list, retries=3, retry_pause=600):
     return staged_files
 
 
-def write_stage_out_results(staged, work_dir):
-    """Write stage-out results to work_dir/stage_out_results.json for create_report to merge."""
+def write_stage_out_results(staged, work_dir, file_list):
+    """
+    Write stage-out results to work_dir/stage_out_results.json for create_report to merge.
+
+    Transforms (staged, file_list) into a flat list of entries (pfn, pnn,
+    step_name, local_filename, size), then writes JSON. The load side (create_report) does
+    the inverse: reads JSON and builds a lookup (step_name, basename) -> {pfn, pnn, size}
+    for merging. Same schema, different purposes—write produces a list, load produces a
+    keyed dict.
+    """
     results_path = os.path.join(work_dir, "stage_out_results.json")
+    entries = []
+    for r, fi in zip(staged, file_list):
+        e = {"pfn": r["PFN"], "pnn": r.get("PNN")}
+        if fi.get("step_name"):
+            e["step_name"] = fi["step_name"]
+            e["local_filename"] = os.path.basename(fi["local_path"])
+        local_path = fi.get("local_path", "").replace("file:", "")
+        if local_path and os.path.isfile(local_path):
+            e["size"] = os.path.getsize(local_path)
+        elif local_path:
+            print("[stage_out] File not found for size: %s" % local_path)
+        entries.append(e)
     with open(results_path, "w") as f:
-        json.dump(
-            {"staged": [{"lfn": r["LFN"], "pfn": r["PFN"], "pnn": r.get("PNN")} for r in staged]},
-            f,
-            indent=2,
-        )
+        json.dump({"staged": entries}, f, indent=2)
     print("[stage_out] Wrote %s" % results_path)
 
 
@@ -191,7 +208,7 @@ def main():
     staged = stageout_files(file_list, retries=args.retries, retry_pause=args.retry_pause)
 
     if args.work_dir:
-        write_stage_out_results(staged, args.work_dir)
+        write_stage_out_results(staged, args.work_dir, file_list)
 
 
 if __name__ == "__main__":

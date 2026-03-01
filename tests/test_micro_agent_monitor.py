@@ -75,7 +75,8 @@ class TestFrameworkJobReport(unittest.TestCase):
         samples_dir = os.path.join(os.path.dirname(__file__), "..", "samples", "micro_agent")
         path = FrameworkJobReport.find(samples_dir, 10409446, 0)
         self.assertIsNotNone(path)
-        files, err = FrameworkJobReport.extract_files(path)
+        steps = {"step4", "step5", "step6"}
+        files, err = FrameworkJobReport.extract_files(path, keep_output_steps=steps)
         self.assertIsNone(err)
         self.assertGreater(len(files), 0)
         f = files[0]
@@ -170,7 +171,7 @@ class TestFrameworkJobReport(unittest.TestCase):
             try:
                 json.dump(report, tf)
                 tf.close()
-                files, err = FrameworkJobReport.extract_files(tf.name)
+                files, err = FrameworkJobReport.extract_files(tf.name, keep_output_steps={"step1"})
                 self.assertIsNone(err)
                 self.assertEqual(len(files), 1)
                 self.assertEqual(files[0]["pfn"], "out.root")
@@ -195,7 +196,7 @@ class TestFrameworkJobReport(unittest.TestCase):
             try:
                 json.dump(report, tf)
                 tf.close()
-                files, err = FrameworkJobReport.extract_files(tf.name)
+                files, err = FrameworkJobReport.extract_files(tf.name, keep_output_steps={"step6"})
                 self.assertIsNone(err)
                 self.assertEqual(len(files), 1)
                 self.assertEqual(files[0]["pfn"], "root://eos/store/.../file.root")
@@ -229,11 +230,20 @@ class TestFileDB(unittest.TestCase):
     def test_process_terminated_job_with_sample(self):
         """Full flow: process_terminated_job with real sample report."""
         samples_dir = os.path.join(os.path.dirname(__file__), "..", "samples", "micro_agent")
+        request_path = os.path.join(
+            os.path.dirname(__file__), "..",
+            "samples", "cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792",
+            "request.json",
+        )
+        keep_output_steps = load_keep_output_steps(request_path)
         with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tf:
             tf.close()
             try:
                 db = FileDB(tf.name)
-                ok, result = db.process_terminated_job(samples_dir, 10409446, 0, return_value=0)
+                ok, result = db.process_terminated_job(
+                    samples_dir, 10409446, 0, return_value=0,
+                    keep_output_steps=keep_output_steps, request_path=request_path,
+                )
                 self.assertTrue(ok)
                 self.assertIsInstance(result, int)
                 self.assertGreater(result, 0)
@@ -251,12 +261,14 @@ class TestFileDB(unittest.TestCase):
             "samples", "cmsunified_task_SMP-RunIISummer20UL17pp5TeVwmLHEGS-00007__v1_T_251014_173511_792",
             "request.json",
         )
+        keep_output_steps = load_keep_output_steps(request_path)
         with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tf:
             tf.close()
             try:
                 db = FileDB(tf.name)
                 ok, result = db.process_terminated_job(
-                    samples_dir, 10409446, 0, return_value=0, request_path=request_path
+                    samples_dir, 10409446, 0, return_value=0,
+                    keep_output_steps=keep_output_steps, request_path=request_path,
                 )
                 self.assertTrue(ok)
                 cur = db.conn.execute("SELECT lfn FROM processed_files WHERE lfn != '' LIMIT 1")
