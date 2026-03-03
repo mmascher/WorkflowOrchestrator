@@ -1,5 +1,5 @@
 #!/bin/bash
-# Meke sure there is something to transfer back
+# Make sure there is something to transfer back
 touch prmon.txt prmon.json
 
 # Run stepchain in background so we can monitor it with prmon

@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0] - 2025-03-02
+
+### Added
+
+- **Micro Agent Monitor (MAM)** (`src/python/micro_agent/micro_agent_monitor.py`): Parses HTCondor user logs, detects `JOB_TERMINATED` events, extracts output file info from framework job reports, and stores it in a file-centric SQLite database. Supports daemon mode (tail log) or single-pass (`--once`). Only stores outputs from steps with `KeepOutput==True`. See [samples/micro_agent/README.md](samples/micro_agent/README.md).
+- **Job report aggregation** (`ep_scripts/create_report.py`): Aggregates `FrameworkJobReport` XML files from stepchain cmsRun executions into a single JSON report. Merges stageout results (PFN, PNN) into output file records. Runs on the worker after all steps complete; output transferred back with the job.
+- **prmon support**: Memory profiling via `prmon` in `run.sh`; `prmon.txt` and `prmon.json` transferred back with job output.
+- **Shared utils** (`src/python/micro_agent/utils.py`): `build_lfn`, `build_lfn_for_file`, `load_step_config` for LFN construction and step config; used by stage_out and MAM.
+- **EventStreams**: Event splitter and tweaks now take `EventStreams` from request.json (per-step or workload-level).
+
+### Fixed
+
+- Improved error messages in `execute_stepchain.sh`.
+
 ## [0.3.0] - 2026-02-21
 
 ### Added
@@ -63,6 +77,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - event_splitter requires WMCore on `PYTHONPATH` (e.g. `../WMCore/src/python`).
 - `execute_stepchain.sh` requires `edm_pset_pickler.py`, `edm_pset_tweak.py`, `cmssw_handle_nEvents.py` on PATH (e.g. from cmssw-wm-tools) and a CMS/SCRAM environment (e.g.: the cmssw-el7 for the `SMP-RunIISummer20UL17pp5TeVwmLHEGS` example in the repo).
 
+[0.4.0]: https://github.com/dmwm/WorkflowOrchestrator/releases/tag/v0.4.0
 [0.3.0]: https://github.com/dmwm/WorkflowOrchestrator/releases/tag/v0.3.0
 [0.2.0]: https://github.com/dmwm/WorkflowOrchestrator/releases/tag/v0.2.0
 [0.1.1]: https://github.com/dmwm/WorkflowOrchestrator/releases/tag/v0.1.1

@@ -2,8 +2,8 @@
 
 Sample HTCondor JDL and wrapper script for submitting StepChain jobs. Two submission modes are provided:
 
-1. **One job per site** (`job.jdl`) — useful for validating StepChain execution across the Grid. Iterates over sites in `sitelist.txt`.
-2. **JDL workflow (Queue N)** — Single JDL with `Queue from seq 1 N`; one Condor job per event_splitter job. Simpler than DAGMan.
+1. **One job per site** (`job.jdl`) — useful for validating StepChain execution across the Grid. Iterates over sites in `sitelist.txt`. Uses `job1.json` for all sites (same job run on each site for validation).
+2. **JDL workflow (Queue N)** — Single JDL with `Queue from seq 1 N`; one Condor job per event_splitter job. Uses `job$(Index).json` (1-based). Simpler than DAGMan.
 
 ## Directory Setup
 
@@ -59,11 +59,12 @@ htcondor/
 ├── execute_stepchain.sh
 ├── submit_env.sh
 ├── stage_out.py
+├── create_report.py
 ├── utils.py
 ├── WMCore.zip
 ├── event_splitter_out/
-│   ├── job0.json
 │   ├── job1.json
+│   ├── job2.json
 │   ├── ...
 │   └── request_psets.tar.gz
 ├── log/

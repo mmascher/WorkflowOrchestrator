@@ -10,7 +10,6 @@
 
 set -e
 set -o pipefail
-set -x # MYTEST
 
 # Resolve to absolute paths so they work after we cd to TMP_DIR (e.g. inside Singularity)
 resolve_abs() {
@@ -83,9 +82,7 @@ run_step_in_cms_env() {
     export SCRAM_ARCH
     scram project "$CMSSW_VERSION" || { echo "[execute_stepchain] scram project failed"; exit $EXIT_SCRAM; }
     cd "$CMSSW_VERSION"
-    set +x # MYTEST
     eval $(scram runtime -sh)
-    set -x # MYTEST
     cd ..
 
     edm_pset_pickler.py --input "PSet_base.py" --output_pkl "Pset.pkl" || {
@@ -120,12 +117,6 @@ WRAPPER
 
     export FRONTIER_LOG_LEVEL=warning
     echo "[execute_stepchain] Executing cmsRun -j job_report.xml Pset_cmsRun.py"
-#    mkdir -p "$CMSSW_BASE/SITECONF/local/JobConfig" # MYTEST
-#    cp /home/marco/development/results/WMCore/manual_test/site-local-config.xml "$CMSSW_BASE/SITECONF/local/JobConfig/site-local-config.xml" # MYTEST
-#    unset FRONTIER_PROXY # MYTEST
-#    unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY # MYTEST
-#    unset all_proxy ALL_PROXY no_proxy NO_PROXY # MYTEST
-#    CMS_PATH="$CMSSW_BASE" cmsRun -j job_report.xml Pset_cmsRun.py # MYTEST
     cmsRun -j job_report.xml Pset_cmsRun.py
     CMSRUN_EXIT=$?
     if [ "$CMSRUN_EXIT" -ne 0 ]; then
@@ -192,10 +183,8 @@ run_create_report() {
     (
     source "$SCRIPT_DIR/submit_env.sh"
     export PYTHONPATH="$PYTHONPATH:$SCRIPT_DIR/WMCore.zip"
-    set +x # MYTEST
     setup_cmsset
     setup_python_comp
-    set -x # MYTEST
     "$CREATE_REPORT_SCRIPT" --work-dir "$TMP_DIR" --request "$REQUEST_JSON" --output "$INITIAL_DIR/job_report.json" || true
     )
     echo "[execute_stepchain] Create report completed (or skipped on error)."
@@ -213,13 +202,9 @@ run_stageout() {
     fi
     (
     source "$SCRIPT_DIR/submit_env.sh"
-    #setup_local_env # MYTEST
-    #export CVMFS="/cvmfs/cms.cern.ch" # MYTEST
     export PYTHONPATH="$PYTHONPATH:$SCRIPT_DIR/WMCore.zip"
-    set +x # MYTEST
     setup_cmsset
     setup_python_comp
-    set -x # MYTEST
     if [ -z "${SITECONFIG_PATH:-}" ] && [ -z "${WMAGENT_SITE_CONFIG_OVERRIDE:-}" ]; then
         echo "[execute_stepchain] Stage-out skipped (SITECONFIG_PATH not set)."
         return 0

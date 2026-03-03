@@ -46,6 +46,9 @@ def discover_files_from_request(request_path, work_dir):
             next_step = req.get("Step%d" % (n + 1), {})
             out_module = next_step.get("InputFromOutputModule", "RAWSIMoutput")
         else:
+            # Last step: no next step to get InputFromOutputModule from.
+            # Scan step_dir for .root files and use the first one's basename (without .root)
+            # as the output module name (e.g. NANOAODSIMoutput.root -> NANOAODSIMoutput).
             out_module = None
             if os.path.isdir(step_dir):
                 for f in os.listdir(step_dir):
