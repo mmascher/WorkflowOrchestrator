@@ -1,0 +1,4 @@
+# Workflow Orchestrator dependencies
+requests>=2.25.0
+PyYAML>=5.1
+htcondor>=10.0.0
