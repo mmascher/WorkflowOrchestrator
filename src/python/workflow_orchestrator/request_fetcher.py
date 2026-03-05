@@ -65,7 +65,7 @@ def fetch_splitting(reqmgr, request_name):
         raise
 
 
-def _fetch_config_from_cache(config_cache_url, config_cache_db, config_id, cert=None, timeout=60):
+def _fetch_config_from_cache(config_cache_url, config_cache_db, config_id, cert, timeout=60):
     """
     Fetch config file from reqmgr_config_cache.
     URL: {config_cache_url}/{config_cache_db}/{config_id}/configFile
@@ -81,20 +81,11 @@ def _fetch_config_from_cache(config_cache_url, config_cache_db, config_id, cert=
 
     kwargs = {"timeout": timeout}
     if cert:
-        kwargs["cert"] = cert
+        kwargs["cert"] = (cert, cert)
 
+    kwargs["verify"]="/etc/pki/tls/certs/ca-bundle.crt"
     resp = requests.get(url, **kwargs)
     resp.raise_for_status()
-    content_type = resp.headers.get("Content-Type", "")
-
-    if "application/json" in content_type:
-        data = resp.json()
-        if isinstance(data, dict):
-            if "config" in data:
-                return data["config"]
-            if "configFile" in data:
-                return data["configFile"]
-        return resp.text
 
     return resp.text
 
@@ -128,7 +119,7 @@ def _collect_config_cache_ids(request_doc):
     return entries, config_cache_url, config_cache_db
 
 
-def fetch_psets(request_doc, output_dir, cert=None):
+def fetch_psets(request_doc, output_dir, cert):
     """
     Fetch PSets from reqmgr_config_cache for each step and write to output_dir/PSets/.
     Filename pattern: PSet_cmsRun{N}_{StepName}.py
@@ -148,7 +139,7 @@ def fetch_psets(request_doc, output_dir, cert=None):
         out_path = os.path.join(psets_dir, filename)
         try:
             content = _fetch_config_from_cache(
-                config_cache_url, config_cache_db, config_id, cert=cert
+                config_cache_url, config_cache_db, config_id, cert
             )
             with open(out_path, "w") as f:
                 f.write(content)
@@ -160,7 +151,7 @@ def fetch_psets(request_doc, output_dir, cert=None):
     return psets_dir
 
 
-def fetch_request_data(reqmgr, request_name, request_doc, work_dir, cert=None):
+def fetch_request_data(reqmgr, request_name, request_doc, work_dir, cert):
     """
     Fetch and persist all data needed for a micro agent: request.json, splitting.json, PSets/.
 
@@ -169,7 +160,7 @@ def fetch_request_data(reqmgr, request_name, request_doc, work_dir, cert=None):
         request_name: Request name (for getRequestTasks)
         request_doc: Full request document (from getGenericRequestInfo)
         work_dir: Directory to write files into
-        cert: Optional path to x509 cert for config cache fetch
+        cert: Path to x509 cert/proxy for config cache fetch (required)
 
     Returns:
         (request_path, splitting_path, psets_path)
@@ -188,6 +179,6 @@ def fetch_request_data(reqmgr, request_name, request_doc, work_dir, cert=None):
         json.dump(splitting, f, indent=2)
     logger.info("Wrote splitting.json to %s", splitting_path)
 
-    psets_path = fetch_psets(request_doc, work_dir, cert=cert)
+    psets_path = fetch_psets(request_doc, work_dir, cert)
 
     return request_path, splitting_path, psets_path

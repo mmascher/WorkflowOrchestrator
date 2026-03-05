@@ -1,12 +1,12 @@
 # Workflow Orchestrator configuration
 reqmgr_url: "https://cmsweb.cern.ch/reqmgr2"
-status: "staged"
+status: "acquired"
 request_type: "StepChain"
 poll_interval: 300  # seconds
 
 # Paths (relative to work_dir or absolute)
-sitelist: "sitelist.txt"
-proxy: "/tmp/x509up_u$(id -u)"  # Use env or literal path
+sitelist: "/workspace/samples/htcondor/sitelist.txt"
+proxy: "/workspace/x509up_u8440"  # Use env or literal path
 
 # Work directory for request data and micro agent jobs
 work_dir: "work"

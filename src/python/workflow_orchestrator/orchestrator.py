@@ -24,37 +24,30 @@ def load_config(config_path=None):
     return {}
 
 
-def run_orchestrator(config, reqmgr=None, submitter=None):
+def run_orchestrator(config):
     """
     Main orchestrator loop. Polls ReqMgr for staged StepChain requests,
     fetches data, and submits micro agents.
 
     Args:
         config: Config dict (from load_config)
-        reqmgr: ReqMgr instance (optional, created if None)
-        submitter: Micro agent submitter callable (work_dir, request_name, request_doc) -> bool
     """
     from WMCore.Services.ReqMgr.ReqMgr import ReqMgr
+    from workflow_orchestrator.micro_agent_submitter import submit_micro_agent
 
     reqmgr_url = config.get("reqmgr_url", "https://cmsweb.cern.ch/reqmgr2")
     status = config.get("status", "staged")
     request_type = config.get("request_type", "StepChain")
     poll_interval = config.get("poll_interval", 300)
     work_dir = os.path.abspath(config.get("work_dir", "work"))
-    proxy = config.get("proxy", "")
-    cert = config.get("cert") or proxy
+    proxy = config.get("proxy")
+    cert = proxy  # for fetch_request_data (config cache)
 
-    if reqmgr is None:
-        reqmgr = ReqMgr(url=reqmgr_url)
-
-    if submitter is None:
-        from workflow_orchestrator.micro_agent_submitter import submit_micro_agent
-        submitter = lambda wd, name, doc: submit_micro_agent(
-            work_dir=wd,
-            request_name=name,
-            request_doc=doc,
-            config=config,
-        )
+    header = {}
+    if proxy:
+        header["cert"] = proxy
+        header["key"] = proxy
+    reqmgr = ReqMgr(url=reqmgr_url, header=header)
 
     os.makedirs(work_dir, exist_ok=True)
 
@@ -73,7 +66,7 @@ def run_orchestrator(config, reqmgr=None, submitter=None):
                         request_path, splitting_path, psets_path = fetch_request_data(
                             reqmgr, request_name, request_doc, req_work_dir, cert=cert
                         )
-                        if submitter(req_work_dir, request_name, request_doc):
+                        if submit_micro_agent(work_dir=req_work_dir, request_name=request_name, request_doc=request_doc, config=config):
                             logger.info("Submitted micro agent for %s", request_name)
                         else:
                             logger.warning("Failed to submit micro agent for %s", request_name)

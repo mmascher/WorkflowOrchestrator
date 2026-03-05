@@ -2,3 +2,11 @@
 requests>=2.25.0
 PyYAML>=5.1
 htcondor>=10.0.0
+future
+pycurl>=7.45
+PyJWT>=2
+# WMCore for ReqMgr (ReqMgr client, Lexicon; requires pycurl for HTTP)
+# Install from PyPI or git: pip install WMCore
+#
+# If using samples/htcondor/WMCore.zip instead, ensure pycurl is installed:
+# pip install pycurl
