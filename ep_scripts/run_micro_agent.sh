@@ -50,7 +50,7 @@ fi
 echo "Submitted stepchain, cluster $CLUSTER_ID"
 
 # 4. MAM (daemon mode - tails log continuously, no --once)
-LOG_FILE="log/run.$CLUSTER_ID"
+LOG_FILE="log/micro_agent_monitor.$CLUSTER_ID"
 python3 -m micro_agent.micro_agent_monitor \
   --log "$LOG_FILE" \
   --results-dir results \

@@ -11,5 +11,10 @@ proxy: "/workspace/x509up_u8440"  # Use env or literal path
 # Work directory for request data and micro agent jobs
 work_dir: "work"
 
+# HTCondor (required)
+schedd_name: "crab3@vocms059.cern.ch"
+collector: "vocms4100.cern.ch:9618"
+idtoken: "/workspace/token.idtoken"  # Path to HTCondor ID token for remote schedd auth
+
 # Optional: x509 cert for config cache fetch (e.g. from X509_USER_PROXY)
 # cert: "/tmp/x509up_u$(id -u)"

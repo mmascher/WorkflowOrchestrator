@@ -9,7 +9,7 @@ import os
 logger = logging.getLogger(__name__)
 
 try:
-    import htcondor
+    import htcondor2 as htcondor
 except ImportError:
     htcondor = None
 
@@ -83,9 +83,9 @@ def build_micro_agent_jdl(work_dir, request_name, config):
 Executable = run_micro_agent.sh
 Arguments  = {work_dir}
 
-Log        = log/run.$(Cluster)
-Output     = out/run.$(Cluster).$(Process)
-Error      = err/run.$(Cluster).$(Process)
+Log        = log/micro_agent.$(Cluster)
+Output     = out/micro_agent.$(Cluster).$(Process)
+Error      = err/micro_agent.$(Cluster).$(Process)
 
 should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
@@ -105,6 +105,14 @@ Queue 1
     with open(jdl_path, "w") as f:
         f.write(content)
     return jdl_path
+
+
+def _do_submit(sub, schedd_name, collector):
+    """Submit to remote schedd. IDTOKENS_FILE must be set for auth."""
+    coll = htcondor.Collector(pool=collector)
+    location = coll.locate(htcondor.DaemonType.Schedd, name=schedd_name)
+    schedd = htcondor.Schedd(location)
+    return schedd.submit(sub)
 
 
 def submit_micro_agent(work_dir, request_name, request_doc, config):
@@ -130,8 +138,16 @@ def submit_micro_agent(work_dir, request_name, request_doc, config):
     try:
         with open(jdl_path) as f:
             sub = htcondor.Submit(f.read())
-        schedd = htcondor.Schedd()
-        result = schedd.submit(sub)
+
+        schedd_name = config["schedd_name"]
+        collector = config["collector"]
+        idtoken = config["idtoken"]
+        os.environ["IDTOKENS_FILE"] = idtoken
+        try:
+            result = _do_submit(sub, schedd_name, collector)
+        finally:
+            os.environ.pop("IDTOKENS_FILE", None)
+
         cluster_id = result.cluster()
         logger.info("Submitted micro agent for %s, cluster %s", request_name, cluster_id)
         return True
