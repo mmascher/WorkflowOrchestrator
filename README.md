@@ -13,3 +13,5 @@ The repo is organized around five main areas:
 | **`src/python/micro_agent/`** | **create_stepchain_jdl.py** — generates HTCondor JDL for StepChain submission. **micro_agent_monitor.py** (MAM) — tails condor logs, stores file info in SQLite. |
 | **`ep_scripts/`** | **run_micro_agent.sh** — micro agent wrapper (event_splitter → create_stepchain_jdl → condor_submit → MAM). **execute_stepchain.sh** runs the stepchain on workers. See [ep_scripts/README.md](ep_scripts/README.md). |
 | **`samples/`** | Real examples: request, splitting, PSets, and Condor job inputs. [workflow_orchestrator/](samples/workflow_orchestrator/) — run scripts. |
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/mmascher/WorkflowOrchestrator)
