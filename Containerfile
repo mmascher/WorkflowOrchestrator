@@ -23,5 +23,12 @@ RUN pip install --no-cache-dir \
 # Directory where the repo will be mounted
 WORKDIR /workspace
 
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+
 # Default shell
 CMD ["/bin/bash"]
