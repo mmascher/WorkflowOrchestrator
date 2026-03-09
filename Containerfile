@@ -3,6 +3,10 @@ FROM almalinux:9
 # Better logging for Python apps
 ENV PYTHONUNBUFFERED=1
 
+# HTCondor repository
+RUN dnf install -y \
+https://htcss-downloads.chtc.wisc.edu/repo/25.0/htcondor-release-current.el9.noarch.rpm
+
 # Install system dependencies
 RUN dnf -y update && \
     dnf -y install \
@@ -14,6 +18,7 @@ RUN dnf -y update && \
         hostname \
         libcurl-devel \
         vim \
+        condor \
     && dnf clean all
 
 # Install useful development tools
