@@ -11,10 +11,14 @@ proxy: "/workspace/x509up_u8440"  # Use env or literal path
 # Work directory for request data and micro agent jobs
 work_dir: "work"
 
+# Optional: use Go MAM instead of Python (requires: make -C src/go/micro_agent_monitor build)
+# mam_impl: "go"
+
 # HTCondor (required)
 schedd_name: "crab3@vocms059.cern.ch"
 collector: "vocms4100.cern.ch:9618"
 idtoken: "/workspace/token.idtoken"  # Path to HTCondor ID token for remote schedd auth
+htcondor_debug: true
 
 # Optional: x509 cert for config cache fetch (e.g. from X509_USER_PROXY)
 # cert: "/tmp/x509up_u$(id -u)"

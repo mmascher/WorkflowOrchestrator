@@ -12,7 +12,9 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WO_DIR="${1:-$(cd "$SCRIPT_DIR/.." && pwd)}"
-export PYTHONPATH="${WO_DIR}/src/python:${WO_DIR}/samples/htcondor/WMCore.zip:${PYTHONPATH:-}"
+# WMCore.zip: in job sandbox at WO_DIR (copied by submitter)
+WMCORE_ZIP="${WO_DIR}/WMCore.zip"
+export PYTHONPATH="${WO_DIR}/src/python:${WMCORE_ZIP}:${PYTHONPATH:-}"
 
 PROXY="${X509_USER_PROXY:-/tmp/x509up_u$(id -u)}"
 REQUEST_JSON="request.json"
@@ -40,7 +42,7 @@ python3 -m micro_agent.create_stepchain_jdl \
   --output-jdl "$STEPCHAIN_JDL"
 
 # 3. Submit stepchain (parse cluster ID from condor_submit output for MAM log path)
-SUBMIT_OUT=$(condor_submit "$STEPCHAIN_JDL" 2>&1) || { echo "Failed to submit stepchain.jdl"; exit 1; }
+SUBMIT_OUT=$(condor_submit "$STEPCHAIN_JDL" 2>&1) || { echo "Failed to submit stepchain.jdl:"; echo "$SUBMIT_OUT"; exit 1; }
 CLUSTER_ID=$(echo "$SUBMIT_OUT" | sed -n 's/.*submitted to cluster \([0-9]*\).*/\1/p')
 if [ -z "$CLUSTER_ID" ]; then
   echo "Could not parse cluster ID from condor_submit output"
@@ -50,9 +52,18 @@ fi
 echo "Submitted stepchain, cluster $CLUSTER_ID"
 
 # 4. MAM (daemon mode - tails log continuously, no --once)
+# Use MAM_IMPL=go to run the Go version instead of Python
 LOG_FILE="log/micro_agent_monitor.$CLUSTER_ID"
-python3 -m micro_agent.micro_agent_monitor \
-  --log "$LOG_FILE" \
-  --results-dir results \
-  --db micro_agent.db \
-  --request "$REQUEST_JSON"
+if [ "${MAM_IMPL}" = "go" ] && [ -x "$WO_DIR/src/go/micro_agent_monitor/micro_agent_monitor" ]; then
+  "$WO_DIR/src/go/micro_agent_monitor/micro_agent_monitor" \
+    --log "$LOG_FILE" \
+    --results-dir results \
+    --db micro_agent.db \
+    --request "$REQUEST_JSON"
+else
+  python3 -m micro_agent.micro_agent_monitor \
+    --log "$LOG_FILE" \
+    --results-dir results \
+    --db micro_agent.db \
+    --request "$REQUEST_JSON"
+fi

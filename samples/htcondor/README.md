@@ -38,7 +38,7 @@ Copy the necessary files into this directory:
    cp "$WO_DIR/samples/htcondor/WMCore.zip" .
 
    cp "$WO_DIR/samples/htcondor/job.jdl" .
-   cp "$WO_DIR/samples/htcondor/run.sh" .
+   cp "$WO_DIR/ep_scripts/run.sh" .
    cp "$WO_DIR/samples/htcondor/sitelist.txt" .
 
    ```

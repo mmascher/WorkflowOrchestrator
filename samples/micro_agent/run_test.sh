@@ -15,7 +15,7 @@ cp "$WO_DIR/ep_scripts/create_report.py" .
 cp "$WO_DIR/samples/htcondor/WMCore.zip" .
 
 cp "$WO_DIR/samples/htcondor/job.jdl" .
-cp "$WO_DIR/samples/htcondor/run.sh" .
+cp "$WO_DIR/ep_scripts/run.sh" .
 cp "$WO_DIR/samples/htcondor/sitelist.txt" .
 
 

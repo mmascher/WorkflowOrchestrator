@@ -15,23 +15,15 @@ except ImportError:
 
 
 def _resolve_proxy(config):
-    """Resolve proxy path from config (may contain $(id -u))."""
-    proxy = config.get("proxy", "") or os.environ.get("X509_USER_PROXY", "")
-    if "$(id -u)" in proxy:
-        import subprocess
-        try:
-            uid = subprocess.check_output(["id", "-u"], text=True).strip()
-            proxy = proxy.replace("$(id -u)", uid)
-        except Exception:
-            proxy = "/tmp/x509up_u" + str(os.getuid())
-    return proxy or f"/tmp/x509up_u{os.getuid()}"
+    """Get proxy path from config."""
+    return config.get("proxy", "") or os.environ.get("X509_USER_PROXY", "") or f"/tmp/x509up_u{os.getuid()}"
 
 
 def _copy_micro_agent_assets(work_dir, wo_dir):
     """Copy ep_scripts, WMCore.zip, utils.py, sitelist to work_dir for the micro agent."""
     import shutil
     ep_scripts = os.path.join(wo_dir, "ep_scripts")
-    for name in ["run_micro_agent.sh", "execute_stepchain.sh", "submit_env.sh",
+    for name in ["run_micro_agent.sh", "execute_stepchain.sh", "run.sh", "submit_env.sh",
                  "stage_out.py", "create_report.py"]:
         src = os.path.join(ep_scripts, name)
         if os.path.isfile(src):
@@ -60,16 +52,29 @@ def _copy_micro_agent_assets(work_dir, wo_dir):
                 shutil.rmtree(dst_mod)
             shutil.copytree(src_mod, dst_mod)
 
+    # Copy Go MAM binary if built (for MAM_IMPL=go)
+    go_mam_binary = os.path.join(wo_dir, "src", "go", "micro_agent_monitor", "micro_agent_monitor")
+    if os.path.isfile(go_mam_binary):
+        go_dst_dir = os.path.join(work_dir, "src", "go", "micro_agent_monitor")
+        os.makedirs(go_dst_dir, exist_ok=True)
+        shutil.copy2(go_mam_binary, os.path.join(go_dst_dir, "micro_agent_monitor"))
+        os.chmod(os.path.join(go_dst_dir, "micro_agent_monitor"), 0o755)
+
 
 def build_micro_agent_jdl(work_dir, request_name, config):
     """
     Build the micro agent JDL. Copies needed assets to work_dir, then creates JDL.
     Returns path to the JDL file.
     """
+    # Project root: src/python/workflow_orchestrator -> go up 3 levels
     wo_dir = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "..")
+        os.path.join(os.path.dirname(__file__), "..", "..", "..")
     )
     _copy_micro_agent_assets(work_dir, wo_dir)
+
+    run_script = os.path.join(work_dir, "run_micro_agent.sh")
+    if not os.path.isfile(run_script):
+        raise FileNotFoundError(f"run_micro_agent.sh not found in {work_dir} after copying assets")
 
     sitelist = config.get("sitelist", "sitelist.txt")
     sitelist_path = os.path.join(work_dir, sitelist)
@@ -77,27 +82,40 @@ def build_micro_agent_jdl(work_dir, request_name, config):
         raise FileNotFoundError(f"Sitelist not found in {work_dir}: {sitelist}")
 
     proxy = _resolve_proxy(config)
+    if not os.path.isfile(proxy):
+        raise FileNotFoundError(f"Proxy not found: {proxy}")
+    proxy_basename = os.path.basename(proxy)
+    proxy_in_work = os.path.join(work_dir, proxy_basename)
+    import shutil
+    shutil.copy2(proxy, proxy_in_work)  # HTCondor reads proxy from CWD (work_dir) when creating job ad
 
-    content = f"""Universe   = vanilla
+    # Build transfer_input_files: use relative paths (names only).
+    # HTCondor resolves these relative to CWD when spooling; we chdir(work_dir) before submit.
+    transfer_items = []
+    for name in sorted(os.listdir(work_dir)):
+        transfer_items.append(name)
+    transfer_input_files = ", ".join(transfer_items)
+
+    # Use Go MAM when config says so and binary was copied
+    go_mam = os.path.join(work_dir, "src", "go", "micro_agent_monitor", "micro_agent_monitor")
+    env_line = ""
+    if config.get("mam_impl") == "go" and os.path.isfile(go_mam):
+        env_line = 'environment = "MAM_IMPL=go"\n\n'
+
+    content = f"""Universe   = scheduler
 
 Executable = run_micro_agent.sh
-Arguments  = {work_dir}
+Arguments  = .
 
 Log        = log/micro_agent.$(Cluster)
 Output     = out/micro_agent.$(Cluster).$(Process)
 Error      = err/micro_agent.$(Cluster).$(Process)
 
+{env_line}transfer_input_files = {transfer_input_files}
 should_transfer_files = YES
-when_to_transfer_output = ON_EXIT
 
-x509userproxy = {proxy}
+x509userproxy = {proxy_basename}
 use_x509userproxy = True
-
-request_cpus = 1
-request_memory = 1000
-+MaxWallTimeMins = 1440
-
-InitialDir = {work_dir}
 
 Queue 1
 """
@@ -112,7 +130,12 @@ def _do_submit(sub, schedd_name, collector):
     coll = htcondor.Collector(pool=collector)
     location = coll.locate(htcondor.DaemonType.Schedd, name=schedd_name)
     schedd = htcondor.Schedd(location)
-    return schedd.submit(sub)
+
+    submitResult = schedd.submit(sub, spool=True)
+    clusterId = submitResult.cluster()
+    schedd.spool(submitResult)
+
+    return clusterId
 
 
 def submit_micro_agent(work_dir, request_name, request_doc, config):
@@ -121,9 +144,7 @@ def submit_micro_agent(work_dir, request_name, request_doc, config):
     Returns True if submission succeeded, False otherwise.
     """
     work_dir = os.path.abspath(work_dir)
-    os.makedirs(os.path.join(work_dir, "log"), exist_ok=True)
-    os.makedirs(os.path.join(work_dir, "out"), exist_ok=True)
-    os.makedirs(os.path.join(work_dir, "err"), exist_ok=True)
+
 
     try:
         jdl_path = build_micro_agent_jdl(work_dir, request_name, config)
@@ -135,6 +156,12 @@ def submit_micro_agent(work_dir, request_name, request_doc, config):
         logger.error("htcondor2 not available")
         return False
 
+    if config.get("htcondor_debug"):
+        htcondor.set_subsystem("TOOL")
+        htcondor.param["TOOL_DEBUG"] = "D_FULLDEBUG, D_SECURITY"
+        htcondor.enable_debug()
+        htcondor.log(htcondor.LogLevel.FullDebug, "WorkflowOrchestrator: HTCondor debug enabled")
+
     try:
         with open(jdl_path) as f:
             sub = htcondor.Submit(f.read())
@@ -143,12 +170,15 @@ def submit_micro_agent(work_dir, request_name, request_doc, config):
         collector = config["collector"]
         idtoken = config["idtoken"]
         os.environ["IDTOKENS_FILE"] = idtoken
+        cluster_id = None
+        orig_cwd = os.getcwd()
         try:
-            result = _do_submit(sub, schedd_name, collector)
+            os.chdir(work_dir)  # HTCondor resolves Executable relative to CWD when spooling
+            cluster_id = _do_submit(sub, schedd_name, collector)
         finally:
+            os.chdir(orig_cwd)
             os.environ.pop("IDTOKENS_FILE", None)
 
-        cluster_id = result.cluster()
         logger.info("Submitted micro agent for %s, cluster %s", request_name, cluster_id)
         return True
     except Exception as e:
