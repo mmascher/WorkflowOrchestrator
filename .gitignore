@@ -1,3 +1,6 @@
 __pycache__/
 work/
 x509up_u8440
+
+# Go binaries
+src/go/micro_agent_monitor/micro_agent_monitor
