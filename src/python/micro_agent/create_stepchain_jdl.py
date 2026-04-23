@@ -79,6 +79,7 @@ def read_request(request_path):
         "walltime_mins": walltime_mins,
         "batch_name": req.get("RequestName") or req.get("_id"),
         "required_os": required_os,
+        "trust_pu_sitelists": req.get("TrustPUSitelists", False),
     }
 
 
@@ -93,7 +94,86 @@ def read_sitelist(sitelist_path):
     if not sites:
         raise SystemExit(f"Error: sitelist file is empty: {sitelist_path}")
 
-    return ", ".join(sites)
+    return sites
+
+
+def filter_sites_for_pileup(sites, request_path):
+    """
+    1. Extract pileup datasets from request.json
+    2. Query MSPileup service for currentRSEs (sites with local pileup)
+    3. Filter available sites to only those with local pileup data
+    """
+    try:
+        # Read request to get pileup datasets
+        with open(request_path) as f:
+            req = json.load(f)
+        
+        # Find pileup datasets in the request (production logic)
+        pileup_datasets = []
+        for step_name, step_config in req.items():
+            if step_name.startswith("Step") and isinstance(step_config, dict):
+                if "MCPileup" in step_config:
+                    # MCPileup is a string, not a list
+                    pileup_datasets.append(step_config["MCPileup"])
+                if "DataPileup" in step_config:
+                    # DataPileup is also a string
+                    pileup_datasets.append(step_config["DataPileup"])
+        
+        if not pileup_datasets:
+            print("Warning: No pileup datasets found in request, falling back to all sites")
+            return sites
+        
+        print(f"Found pileup datasets: {pileup_datasets}")
+        
+        # Prod: Query MSPileup for currentRSEs (sites with local pileup)
+        print(f"PRODUCTION: Querying MSPileup for pileup dataset: {pileup_datasets[0]}")
+        
+        # Import and use the actual pileup_generator
+        import sys
+        import os
+        pileup_gen_path = os.path.join(os.path.dirname(__file__), '../../pileup_generator')
+        if pileup_gen_path not in sys.path:
+            sys.path.insert(0, pileup_gen_path)
+        
+        try:
+            from generate_pileupconf import query_mspileup, INSTANCE_URLS
+            mspileup_url = INSTANCE_URLS["prod"]["mspileup_url"]
+            
+            # Query actual MSPileup service
+            doc = query_mspileup(mspileup_url, pileup_datasets[0])
+            current_rses = doc.get("currentRSEs", [])
+            
+            # Convert RSE names to site names (remove _Disk suffix)
+            pileup_sites = set()
+            for rse in current_rses:
+                if rse.startswith(("T1_", "T2_")):
+                    site_name = rse.replace("_Disk", "")
+                    pileup_sites.add(site_name)
+            
+            print(f"PRODUCTION: MSPileup returned {len(current_rses)} RSEs with pileup data")
+            print(f"PRODUCTION: Converted to {len(pileup_sites)} CMS site names")
+            
+        except ImportError as e:
+            print(f"PRODUCTION: Could not import pileup_generator ({e}), using fallback")
+            # Fallback to all available sites if WMCore not available
+            pileup_sites = set(sites)
+        except Exception as e:
+            print(f"PRODUCTION: MSPileup query failed ({e}), using fallback")
+            # Fallback to all available sites on any error
+            pileup_sites = set(sites)
+        
+        filtered_sites = [site for site in sites if site in pileup_sites]
+        
+        if not filtered_sites:
+            print("Warning: No overlap between available sites and pileup sites, falling back to all sites")
+            return sites
+        
+        print(f"TrustPUSitelists: Filtered to {len(filtered_sites)} sites with local pileup data")
+        return filtered_sites
+        
+    except Exception as e:
+        print(f"Warning: Error in pileup site filtering ({e}), falling back to all sites")
+        return sites
 
 
 def write_jdl_file(
@@ -221,8 +301,15 @@ def main():
     walltime_mins = req_params.get("walltime_mins", 180)
     batch_name = args.batch_name or req_params.get("batch_name")
     required_os = req_params.get("required_os", DEFAULT_REQUIRED_OS)
+    trust_pu_sitelists = req_params.get("trust_pu_sitelists", False)
 
-    sites_str = read_sitelist(args.sitelist)
+    # Read sites and filter based on TrustPUSitelists
+    sites = read_sitelist(args.sitelist)
+    
+    if trust_pu_sitelists:
+        sites = filter_sites_for_pileup(sites, args.request)
+    
+    sites_str = ", ".join(sites)
 
     write_jdl_file(
         output_path=args.output_jdl,
